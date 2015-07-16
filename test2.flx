@@ -1,0 +1,26 @@
+
+-----Input parameters--------
+| Variable Name           | Value             |
+|-------------------------+-------------------|
+| Hubble constant         | 80.0              |
+| Energy ratio of e-      | 1e+12             |
+| Expectral index         | 2.4               |
+| Radius of the beam      | 0.02              |
+| Cells of the beam       | 128               |
+| Tracer lim . value      | 0.9               |
+| Redshift                | 0.001             |
+| Viewing angle           | 90.0              |
+| RMHD file               | ./test1.mac       |
+| Variable dimensions     | [128, 600]        |
+| Grid dimensions         | [128, 600]        |
+| Non thermal e- fraction | 1000000.0         |
+| Non thermal e- density  | 98.1111224182     |
+| External density        | 1e-26             |
+| Observation frequency   | 22000000000.0     |
+| Result file             | test2.flx         |
+| Min_energy              | 0.0001            |
+| Luminosity distance     | 1.15657895806e+25 |
+-----End Input parameters----
+-----Size map properties--------
+Pixels in the map: 600.0 x 256.0  (horizontal x vertical)Size of pixels in mas: 0.00861544378809
+-----End Size map properties----
