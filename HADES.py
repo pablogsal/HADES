@@ -2,7 +2,7 @@ __author__ = 'pablogsal'
 
 import numpy as np
 
-import importer,geometry,bessel_calc
+import importer,geometry,bessel_calc,cuda_driver
 
 
 #  _____      _ _   _       _ _          _   _
@@ -72,4 +72,8 @@ jet_limits=geometry.tracer_limits(data.tracer,par.tracer_limit)
 bessel=bessel_calc.bessel_integrals()
 
 
+
+
+
+cuda_driver.kernel_driver(data,par,obs_map,jet_limits)
 
