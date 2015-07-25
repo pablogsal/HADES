@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+
 __author__ = 'pablogsal'
 
 import numpy as np
 
 import importer,geometry,bessel_calc,cuda_driver
+from tools import *
+from progress_lib import *
 
 
 #  _____      _ _   _       _ _          _   _
@@ -72,8 +76,14 @@ jet_limits=geometry.tracer_limits(data.tracer,par.tracer_limit)
 bessel=bessel_calc.bessel_integrals()
 
 
+#Cool progress to prevent the user of the CUDA freeze!
+stype('Charging CUDA kernel.....')
+print(bcolors.WARNING +"Warning: The cuda kernel will use max capacity of graphics procesors,\nthe screen could "
+                       "become unresponsible during the process."+ bcolors.ENDC)
+
+charge()
 
 
 
-cuda_driver.kernel_driver(data,par,obs_map,jet_limits)
+cosa=cuda_driver.kernel_driver(data,par,obs_map,jet_limits)
 

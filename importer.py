@@ -4,6 +4,7 @@ import numpy as np
 import ConfigParser
 import os, sys
 import tabulate
+from tools import stype
 
 
 
@@ -45,7 +46,7 @@ class imput_parameters(object):
 
         #Read the variables from the config file.
 
-        print("Reading input values....")
+        stype("Reading input values....")
 
         self.hubble= float( Config.get('STANDARD_KEYS',"Hubble") )
         self.rate_ene=float( Config.get('STANDARD_KEYS',"Rate_ene") )
@@ -74,7 +75,7 @@ class imput_parameters(object):
 
         #Now we check that the variables for correct values
 
-        print("Checking input values....")
+        stype("Checking input values....")
 
         if self.gam_sp < 1 or self.gam_sp == 2:
             print(bcolors.FAIL +"ERROR - The spectral index must be >1 and =! 2."+ bcolors.ENDC)
@@ -93,7 +94,7 @@ class imput_parameters(object):
             sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
 
 
-        print(bcolors.OKGREEN +"All input values are correct"+ bcolors.ENDC+'\n')
+        stype(bcolors.OKGREEN +"All input values are correct."+ bcolors.ENDC)
 
 
 
@@ -145,10 +146,10 @@ class imput_parameters(object):
                        self.external_density, self.observation_freq,self.result_file,self.min_energy,
                        self.luminosity_distance]
 
-            print ('\n'+"-----Input parameters--------"+'\n')
+            stype ('\n'+"-----Input parameters--------"+'\n')
             print (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
                              tablefmt='orgtbl') )
-            print ('\n'+"-----End Input parameters----")
+            stype ('\n'+"-----End Input parameters----")
 
 
 
@@ -210,6 +211,7 @@ class rmhd_data(object):
 
     def __init__(self,importfile):
 
+        stype("Reading RMHd data from file '"+str(importfile.name)+"'....")
 
         #The file has two values in the header that act as Fortran records (to be confirmed)
         #so, we have to read this values and do nothing with them
@@ -253,6 +255,7 @@ class rmhd_data(object):
         self.bys = ( self.readarr(importfile,n) ).reshape((self.mnx,self.mnz),order="FORTRAN")
         self.bzs = ( self.readarr(importfile,n) ).reshape((self.mnx,self.mnz),order="FORTRAN")
 
+        stype(bcolors.OKGREEN +"RMHD data read and organized correctly."+ bcolors.ENDC+'\n')
 
 
     # Utility funtion to read one integer from a binary file when little endian

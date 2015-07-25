@@ -5,7 +5,20 @@ __author__ = 'pablogsal'
 import contextlib
 import numpy as np
 import os
+import pycuda
 from pycuda import driver, compiler, gpuarray, tools
+import math
+from tools import *
+
+
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from matplotlib.colors import LogNorm
+import seaborn.apionly as sns
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
+
 
 @contextlib.contextmanager
 def printoptions(*args, **kwargs):
@@ -16,6 +29,15 @@ def printoptions(*args, **kwargs):
 
 
 
+def divisorGenerator(n):
+    large_divisors = []
+    for i in xrange(1, int(math.sqrt(n) + 1)):
+        if n % i is 0:
+            yield i
+            if i is not n / i:
+                large_divisors.insert(0, n / i)
+    for divisor in large_divisors:
+        yield divisor
 
 
 
@@ -48,7 +70,6 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
 
     import pycuda.autoinit
 
-
     # First, we start defining the Kernel. The kernel must accept
     # linearized arrays, so, when we construct the indexes, we
     # must take this into account.
@@ -62,8 +83,9 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     cuda_geometry=open(cuda_dir+"/Device_src/cuda_geometry.cc", "r").read()
     cuda_kernel=open(cuda_dir+"/Device_src/kernel.cc", "r").read()
     cuda_tools=open(cuda_dir+"/Device_src/cuda_tools.cc", "r").read()
+    cuda_energy=open(cuda_dir+"/Device_src/cuda_energy.cc", "r").read()
 
-    code_string=cuda_tools+cuda_geometry+cuda_kernel
+    code_string=cuda_tools+cuda_energy+cuda_geometry+cuda_kernel
 
     kernel_code_template = code_string
 
@@ -75,10 +97,17 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # and then using TILE_SIZE* TILE_SIZE2 threads per block.
 
 
-    MATRIX_SIZE = image_dim_y
-    MATRIX_SIZE2 = image_dim_z
-    TILE_SIZE = 1
-    TILE_SIZE2 = 1
+    MATRIX_SIZE = image_dim_z
+    MATRIX_SIZE2 = image_dim_y
+
+    #Let's find divisors of the matrix to construct the blocks
+
+    divisors_x=np.array(list(divisorGenerator(image_dim_z)))
+    divisors_y=np.array(list(divisorGenerator(image_dim_y)))
+
+
+    TILE_SIZE = divisors_x[divisors_x<32][-1]
+    TILE_SIZE2 = divisors_y[divisors_y<32][-1]
 
 
     GRID_SIZE= 1 if MATRIX_SIZE // TILE_SIZE ==0 else MATRIX_SIZE // TILE_SIZE
@@ -104,8 +133,8 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     bz = data.bz*np.ones((dim_x, dim_y)).astype(np.float64)
 
 
-    a_cpu = np.zeros((dim_x, dim_y)).astype(np.float64)
-    b_cpu = np.zeros((dim_x, dim_y)).astype(np.float64)
+    a_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
+    b_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
 
     #b_cpu = np.random.random((MATRIX_SIZE, MATRIX_SIZE2)).astype(np.float64)
 
@@ -124,6 +153,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     by_gpu=gpuarray.to_gpu(by)
     bz_gpu=gpuarray.to_gpu(bz)
     jet_limits_gpu=gpuarray.to_gpu(jet_limits*np.ones((dim_y)).astype(np.float64))
+
 
     # create empty gpu array for the result
     c_gpu = gpuarray.empty((MATRIX_SIZE, MATRIX_SIZE2), np.float64)
@@ -164,16 +194,16 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
         # output
         c_gpu,
         # Grid definition -> number of blocks x number of blocks.
-        grid = (GRID_SIZE,GRID_SIZE2),
+        grid = (GRID_SIZE2,GRID_SIZE),
         # block definition -> number of threads x number of threads
-        block = (TILE_SIZE, TILE_SIZE2, 1),
+        block = (TILE_SIZE2, TILE_SIZE, 1),
         )
 
     end.record() # end timing
     # calculate the run length
     end.synchronize()
     secs = start.time_till(end)*1e-3
-    print "%f seconds" % (secs)
+    stype( "Cuda kernel executed in %f seconds" % (secs) )
 
     # print the results
     print "-" * 80
@@ -188,6 +218,19 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     print "Matrix C (GPU):"
     cosa=c_gpu.get()
     print cosa
+    # del a_gpu,b_gpu,c_gpu,cosa
+    print image_dim_z,image_dim_y,eps.shape
+    print TILE_SIZE,TILE_SIZE2
+
+    ax=plt.gca()
+    im=ax.imshow(cosa,origin='lower',aspect=None)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("top", size="8%", pad=0)
+    cb=plt.colorbar(im,orientation="horizontal",cax=cax)
+    cb.ax.xaxis.set_ticks_position('top')
+    fig = plt.gcf()
+    fig.set_size_inches(18.5, 10.5)
+    plt.savefig('foo.png', dpi=100)
 
 
-    del a_gpu,b_gpu,c_gpu,cosa

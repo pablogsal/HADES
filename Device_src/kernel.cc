@@ -49,7 +49,7 @@ __global__ void MatrixMulKernel(double *density,double *eps,double *velx,double 
      // If we are out of range, we do nothing. This is important if we
      // want more threads than needed.    
           
-     if ( x < wA and y < wB ) {     
+     if ( y < wA and x < wB ) {
 
 		 // Obtain z_cell and y_cell coordinate. Notice that this is because the x and y indexes are thread index,
 		 // so its values only goes from 0 to wA/wB. As we need the actual value of the z/y coordinate, we must convert
@@ -77,32 +77,54 @@ __global__ void MatrixMulKernel(double *density,double *eps,double *velx,double 
           x_limits( &x_min, &x_max,dim_x, dim_y, theta, y_cell ,z_cell);
 
 			
-		  //Initialize the number of cells accumulator.
-		  
-          int cell=0;
+
 		  
 	      // Initialize rho and zeta values. These are the values of the point x,y,z in the RMHD grid.
 		
 			
       	  float rho = 0.0 ;
       	  float zeta = 0.0 ;
+
+
+
+
+         float sum=0;
 		
           if( x_max > x_min){
 
+//        	  float *restd = new float[int(x_max-x_min)+3];
+              float eldeng[3000];
+              float emini[3000];
+
+        	  //Initialize the number of cells accumulator.
+
+                  int cell=0;
 
 
+                for ( int x_cell = round(x_min)+1; x_cell < round(x_max); x_cell++ ) {
 
-           		for ( int x_cell = round(x_min); x_cell < round(x_max); x_cell++ ) {
 
                       //cont=jet_limits[int(y_cell)];
+           			  //Beware of z being 600 because jet_limits goes from 0 to 599!!!!
 
-
-       		  		obs_to_rmhd( &rho, &zeta, x_cell, y_cell, z_cell, theta);
+       		  		obs_to_rmhd( &rho, &zeta, x_cell, y_cell, z_cell, theta,dim_x,dim_y);
 
            		 	if(round(rho)<jet_limits[int(round(zeta))]){
 				
-				
+           		 				int index_for_rmhd = get_data_index(zeta, rho, dim_y);
+
+
+           		 			//index_for_rmhd can contain outside values -> posible bug.
+//            			    energy(cell,&(restd[cell]),&(eldeng[cell]),&(emini[cell]),  density[ index_for_rmhd ] , eps[ index_for_rmhd ]);
+
+            				sum = sum + density[index_for_rmhd];
+
+//            				b[offset] = restd[cell];
+
             				cell++;
+
+
+
 			
 			
            			 } //End of ?inside tracer value
@@ -113,28 +135,50 @@ __global__ void MatrixMulKernel(double *density,double *eps,double *velx,double 
            } // End of ?x_max > x_min
 		
         else{
-			
+
        	 	rho=0;
        	 	zeta=0;
-			
+
+       	 b[offset] = 1.111;
+
         }
 		
 		
-		
+
 		//Continue after x cell loop
-		
-		
-		
-          b[offset] = get_data_index(23,4, dim_x);
-          c[offset] =  jet_limits[int(round(zeta))];
-		  
-		  
-		  
+
+// PRUEBA DE OVERFLOW!!
+//		  float test[10];
+//		  float test5[6000];
+//     	  float num;
+//		  for ( int i = 0; i < 10; i++ ) {
+//			  num=pow(  float(2.0)  ,  float(0.345)  );
+//			  test[i]= num;
+//
+//
+//
+//		  }
+// PRUEBA DE QUE EL JET SALE BIEN EN LA IMAGEN!!
+//          int yy= y * blockDim.x * gridDim.x;
+//
+//          if(y<dim_x){
+//
+//        	  yy= (dim_x-y-1)* blockDim.x * gridDim.x;
+//          }
+//          else{
+//        	  yy= (y-dim_x)* blockDim.x * gridDim.x;
+//          }
+//
+//
+//             c[offset] =density[ x + yy];
+//
+          c[offset] = sum;
+
 		  
       }
      else{ //What to do if we are out of thread.
 		 
-		 
+    	 c[offset] =-12;
           // This printf is only for fun
    
           // printf("I am out of thread (%% i,%% i) \\n ",x,y);

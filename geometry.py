@@ -1,6 +1,8 @@
 __author__ = 'pablogsal'
 
 import numpy as np
+from tools import stype
+
 
 
 # This class has the information and contents of the observer map.
@@ -97,8 +99,8 @@ class image(object):
             outfile=open(self.out_file, 'a')
             outfile.write('\n'+"-----Size map properties--------"+'\n')
 
-            outfile.write('Pixels in the map: '+str( np.round(self.y_max-self.y_min)+1)+' x '+ str( np.round(
-                self.z_max-self.z_min)+1)+'  (horizontal x vertical)')
+            outfile.write('Pixels in the map: '+str( np.round(self.y_max-self.y_min))+' x '+ str( np.round(
+                self.z_max-self.z_min))+'  (horizontal x vertical)')
             outfile.write('Size of pixels in mas: '+str(self.cell_area))
 
             outfile.write ('\n'+"-----End Size map properties----")
@@ -106,13 +108,14 @@ class image(object):
     def print_to_screen(self):
 
 
-            print('\n'+"-----Size map properties--------"+'\n')
+            stype('\n'+"-----Size map properties--------"+'\n')
 
-            print('Pixels in the map: '+str( np.round(self.y_max-self.y_min)+1)+' x '+ str( np.round(
-                self.z_max-self.z_min)+1)+'  (horizontal x vertical)')
+            print('Pixels in the map: '+str( np.round(self.y_max-self.y_min))+' x '+ str( np.round(
+                self.z_max-self.z_min))+'  (horizontal x vertical)')
             print('Size of pixels in mas: '+str(self.cell_area))
 
-            print ('\n'+"-----End Size map properties----")
+            stype ('\n'+"-----End Size map properties----"+'\n')
+
 
 
 
@@ -130,7 +133,7 @@ def tracer_limits(tracer,limit):
         # Get the values along the z axis (of the Jet, in the rho-z plane) when the jet starts.
         # These values come from the criterion of where the tracer is greater than some value.
 
-        return np.array([np.where(x>.9)[0][-1] for x in tracer.transpose()])
+        return np.array([np.where(x>limit)[0][-1] for x in tracer.transpose()])
 
 
 

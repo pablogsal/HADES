@@ -6,18 +6,18 @@
 
 
 
-__device__ double dot(double a, double b);
+//__device__ double dot(double a, double b);
+//
+//__device__ double cosa(float *x_min, float *x_max){
+//
+//    *x_min = 2;
+//
+//    *x_max = 3;
+//
+//}
 
-__device__ double cosa(float *x_min, float *x_max){
 
-    *x_min = 2;
-
-    *x_max = 3;
-
-}
-
-
-__device__ double x_limits(float *x_min, float *x_max,int dim_x, int dim_y, float theta,float y_cell,
+__device__ void x_limits(float *x_min, float *x_max,int dim_x, int dim_y, float theta,float y_cell,
 float z_cell)
 {
 
@@ -160,7 +160,7 @@ else{
 
 
 
-__device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float theta){
+__device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float theta,int dim_x,int dim_y){
 
     // Renaming things from input_par to easy reading
     // Notice that for the RMHD plane we are using the variable names:
@@ -177,8 +177,18 @@ __device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float
 
      // The rho and z coordinates
 
-    *rho=round(sqrt(x_lab * x_lab + z_lab * z_lab ))+1;
-    *zeta= round(y_lab)+1;
+    *rho=round(sqrt(x_lab * x_lab + z_lab * z_lab ));
+    *zeta= round(y_lab);
+
+    //Beware of rho=-1 and rho > dim_x!!
+
+    if(*rho<0){
+    	*rho=0;
+    }
+    if(*rho>=dim_x)
+    {
+    	*rho=159;
+    }
 
 
 }
