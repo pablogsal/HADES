@@ -5,6 +5,11 @@ import ConfigParser
 import os, sys
 import tabulate
 from tools import stype
+import logging
+from tools import *
+
+#Create logger for module
+module_logger = logging.getLogger('HADES.importer')
 
 
 
@@ -27,6 +32,10 @@ class bcolors:
 class imput_parameters(object):
 
     def __init__(self,importfile):
+        #Get class logger
+
+        self.logger = logging.getLogger('HADES.importer.imput_parameters')
+        self.logger.info('Creating an instance of imput_parameters')
 
         #Some units
 
@@ -45,8 +54,7 @@ class imput_parameters(object):
             Config.read(importfile)
 
         #Read the variables from the config file.
-
-        stype("Reading input values....")
+        self.logger.info('Reading input values')
 
         self.hubble= float( Config.get('STANDARD_KEYS',"Hubble") )
         self.rate_ene=float( Config.get('STANDARD_KEYS',"Rate_ene") )
@@ -72,30 +80,29 @@ class imput_parameters(object):
         self.luminosity_distance = c/self.h0/self.q0/self.q0*(self.q0*self.redshift+(self.q0-1.e0) *(np.sqrt(
             1.e0+2.e0*self.q0*self.redshift)-1))
 
+        self.logger.info('Input values readed correctly')
+
 
         #Now we check that the variables for correct values
-
-        stype("Checking input values....")
+        self.logger.info('Checking input values.')
 
         if self.gam_sp < 1 or self.gam_sp == 2:
-            print(bcolors.FAIL +"ERROR - The spectral index must be >1 and =! 2."+ bcolors.ENDC)
-            sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+            self.logger.error('The spectral index must be >1 and =! 2.')
+            exit()
 
         if self.x_grid_dim > self.x_var_dim:
-            print(bcolors.FAIL +"ERROR - Variable x_grid_dim must be smaller than x_var_dim"+ bcolors.ENDC)
-            sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+            self.logger.error('Variable x_grid_dim must be smaller than x_var_dim')
+            exit()
 
         if self.y_grid_dim > self.y_var_dim:
-            print(bcolors.FAIL +"ERROR - Variable x_grid_dim must be smaller than x_var_dim"+ bcolors.ENDC)
-            sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+            self.logger.error('Variable x_grid_dim must be smaller than x_var_dim')
+            exit()
 
         if self.viewing_angle < 0 or self.viewing_angle > 90:
-            print(bcolors.FAIL +"ERROR - Viewing angle must be between 0 and 90 degs."+ bcolors.ENDC)
-            sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+            self.logger.error('Viewing angle must be between 0 and 90 degs')
+            exit()
 
-
-        stype(bcolors.OKGREEN +"All input values are correct."+ bcolors.ENDC)
-
+        self.logger.ok('All input values are correct.')
 
 
     # This function calculates the energy factor of the non thermal electrons
@@ -109,6 +116,7 @@ class imput_parameters(object):
     # EPS value at (0,0) from the RMHD class.
 
     def calculate_energy_factor(self,eps):
+        self.logger.info('Requested the calculation of energy factor.')
         # Now, we can calculate the energy factor for the non-thermal electrons
         c=2.9979e10 #speed of light
         e_mass=9.1094e-28 #rest-mass of the electron
@@ -128,7 +136,7 @@ class imput_parameters(object):
             self.min_energy=self.non_thermal_density*eps*e_mass*c*c*(self.gam_sp-2.e0)/(self.gam_sp-1.e0)*(1.e0-rate_ene**(
                 1.e0-self.gam_sp))/(1.e0-rate_ene**(2.e0-self.gam_sp))
 
-
+        self.logger.info('Energy factor correctly calculated.')
 
 
     #Function to write the values to the screen
@@ -146,17 +154,15 @@ class imput_parameters(object):
                        self.external_density, self.observation_freq,self.result_file,self.min_energy,
                        self.luminosity_distance]
 
-            stype ('\n'+"-----Input parameters--------"+'\n')
+            stype('\n'+'Input data from config.INI')
             print (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
-                             tablefmt='orgtbl') )
-            stype ('\n'+"-----End Input parameters----")
-
+                             tablefmt='rst', stralign="left") +'\n')
 
 
     #Function to write the parameters to a file
     def print_values_to_file(self):
 
-
+            self.logger.info('Requested print value table to file '+self.result_file+'.')
             outfile=open(self.result_file, 'a')
 
             headers=["Hubble constant","Energy ratio of e-","Expectral index","Radius of the beam","Cells of the "
@@ -173,8 +179,9 @@ class imput_parameters(object):
 
             outfile.write('\n'+"-----Input parameters--------"+'\n')
             outfile.write (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
-                             tablefmt='orgtbl') )
-            outfile.write ('\n'+"-----End Input parameters----")
+                             tablefmt='rst') )
+            outfile.write ('\n'+"-----End Input parameters----"+'\n')
+            self.logger.info('Value table correctly written to file '+self.result_file+'.')
 
 
 
@@ -190,6 +197,9 @@ class imput_parameters(object):
 class constants(object):
 
     def __init__(self,gam_sp):
+        #Get class logger
+        self.logger = logging.getLogger('HADES.importer.constants')
+        self.logger.info('Creating an instance of constants')
         self.c=2.9979e10 #speed of light
         self.e_mass=9.1094e-28 #rest-mass of the electron
         self.e_charge= 4.8032e-10 #charge of the electron in 'esu'
@@ -210,8 +220,11 @@ class constants(object):
 class rmhd_data(object):
 
     def __init__(self,importfile):
+        #Get class logger
+        self.logger = logging.getLogger('HADES.importer.rmhd_data')
+        self.logger.info('Creating an instance of rmhd_data')
 
-        stype("Reading RMHd data from file '"+str(importfile.name)+"'....")
+        self.logger.info("Reading RMHd data from file '"+str(importfile.name)+"'....")
 
         #The file has two values in the header that act as Fortran records (to be confirmed)
         #so, we have to read this values and do nothing with them
@@ -255,7 +268,52 @@ class rmhd_data(object):
         self.bys = ( self.readarr(importfile,n) ).reshape((self.mnx,self.mnz),order="FORTRAN")
         self.bzs = ( self.readarr(importfile,n) ).reshape((self.mnx,self.mnz),order="FORTRAN")
 
-        stype(bcolors.OKGREEN +"RMHD data read and organized correctly."+ bcolors.ENDC+'\n')
+        self.logger.ok("RMHD data read and organized correctly ")
+
+
+    #Test function to RMHD data
+    def rmhd_test(self):
+
+        self.logger.info("Starting tests to RMHD data ")
+
+        flag=False
+        if (self.density < 0).any() :
+            self.logger.fail_check("Negative values for density founded")
+            flag=True
+        else:
+            self.logger.info("All values of density are correct")
+
+        if (self.eps < 0).any() :
+            self.logger.fail_check("Negative values for energy founded")
+            flag=True
+        else:
+            self.logger.info("All values of energy are correct")
+
+        if (self.velx > 1).any() :
+            self.logger.fail_check("Found some values of velx > c")
+            flag=True
+        else:
+            self.logger.info("All values for velx are correct")
+
+        if (self.vely > 1).any() :
+            self.logger.fail_check("Found some values of vely > c")
+            flag=True
+        else:
+            self.logger.info("All values for vely are correct")
+
+        if (self.velz > 1).any() :
+            self.logger.fail_check("Found some values of velz > c")
+            flag=True
+        else:
+            self.logger.info("All values for velz are correct")
+
+
+        if flag :
+            self.logger.error("Some test on the RMHD data filed ")
+        else:
+            self.logger.ok("RMHD data tests passed correctly. ")
+
+        self.logger.info("End of tests to RMHD data.")
 
 
     # Utility funtion to read one integer from a binary file when little endian
@@ -274,12 +332,17 @@ class rmhd_data(object):
         return np.fromfile(file=fileobj, dtype=np.float64,count=n).byteswap()
 
     def correction(self,external_density):
+        self.logger.info("Requested correction of magnetic field, density and energy.")
+
         c=2.9979e10
         self.bx= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
         self.by= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
         self.bz= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
         self.density= self.density*self.tracer
         self.eps=self.eps*self.tracer
+
+        self.logger.info("Correctly corrected the values of magnetic field, density and energy.")
+
 
 
 

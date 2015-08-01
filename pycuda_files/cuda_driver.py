@@ -9,8 +9,9 @@ import pycuda
 from pycuda import driver, compiler, gpuarray, tools
 import math
 from tools import *
-
-
+import cuda_toolbox
+import logging
+import tabulate
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
@@ -18,32 +19,14 @@ import seaborn.apionly as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-
-
-@contextlib.contextmanager
-def printoptions(*args, **kwargs):
-    original = np.get_printoptions()
-    np.set_printoptions(*args, **kwargs)
-    yield
-    np.set_printoptions(**original)
+#Create logger for module
+module_logger = logging.getLogger('HADES.cuda_driver')
 
 
 
-def divisorGenerator(n):
-    large_divisors = []
-    for i in xrange(1, int(math.sqrt(n) + 1)):
-        if n % i is 0:
-            yield i
-            if i is not n / i:
-                large_divisors.insert(0, n / i)
-    for divisor in large_divisors:
-        yield divisor
-
-
-
-
+# @memory_exit
 def kernel_driver(data,input_par,obs_map,jet_limits):
-
+    module_logger.info('Starting the CUDA kernel driver.')
 
 
     # Renaming things from input_par to easy reading
@@ -64,11 +47,26 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     image_dim_y=int(np.round(obs_map.y_max)-np.round(obs_map.y_min))
     image_dim_z=int(np.round(obs_map.z_max)-np.round(obs_map.z_min))
 
+    #Calculate max cells in a path throught the arrays
+
+    max_cell_path=np.round(np.sqrt(image_dim_z**2+image_dim_y**2))
+
+    module_logger.info('Max cells in the path are '+str(max_cell_path)+'.')
+
+
     # When importing this module we are initializing the device.
     # Now, we can call the device and send information using
     # the apropiate tools in the pycuda module.
 
+    module_logger.info('Triying to initialize the device.')
     import pycuda.autoinit
+    module_logger.info('Device correctly initialized.')
+
+
+    # Get device attributes from cuda.toolbox
+
+    device_attr= cuda_toolbox.get_device_attributes(0)
+
 
     # First, we start defining the Kernel. The kernel must accept
     # linearized arrays, so, when we construct the indexes, we
@@ -79,15 +77,31 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # The Kernel is a string with the C code in python so beware of using
     # % and \n in the code because python will interpret these as scape
     # characters. Use %% and \\n instead
+
+    #Reading the kernel C code from files
+
     cuda_dir=os.path.dirname(os.path.realpath(__file__))
-    cuda_geometry=open(cuda_dir+"/Device_src/cuda_geometry.cc", "r").read()
-    cuda_kernel=open(cuda_dir+"/Device_src/kernel.cc", "r").read()
-    cuda_tools=open(cuda_dir+"/Device_src/cuda_tools.cc", "r").read()
-    cuda_energy=open(cuda_dir+"/Device_src/cuda_energy.cc", "r").read()
+
+    module_logger.info('Triying to read the Kernel source code.')
+
+    try:
+
+        cuda_geometry=open(cuda_dir+"/../Device_src/cuda_geometry.cc", "r").read()
+        cuda_kernel=open(cuda_dir+"/../Device_src/kernel.cc", "r").read()
+        cuda_tools=open(cuda_dir+"/../Device_src/cuda_tools.cc", "r").read()
+        cuda_energy=open(cuda_dir+"/../Device_src/cuda_energy.cc", "r").read()
+
+    except IOError:
+
+        module_logger.error('Source code not found.')
+        exit()
+
+    # Unite the kernel code in kernel_code_template
 
     code_string=cuda_tools+cuda_energy+cuda_geometry+cuda_kernel
 
     kernel_code_template = code_string
+    module_logger.info('Kernel code correctly loaded.')
 
     # Define the matrix size and the TILE size.
     # The TILE must divide the matrix size in order to run correctly.
@@ -100,10 +114,10 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     MATRIX_SIZE = image_dim_z
     MATRIX_SIZE2 = image_dim_y
 
-    #Let's find divisors of the matrix to construct the blocks
+    #Let's find divisors of the matrix to construct the blocks in an optimisez way
 
-    divisors_x=np.array(list(divisorGenerator(image_dim_z)))
-    divisors_y=np.array(list(divisorGenerator(image_dim_y)))
+    divisors_x=np.array(list(cuda_toolbox.divisorGenerator(image_dim_z)))
+    divisors_y=np.array(list(cuda_toolbox.divisorGenerator(image_dim_y)))
 
 
     TILE_SIZE = divisors_x[divisors_x<32][-1]
@@ -113,8 +127,18 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     GRID_SIZE= 1 if MATRIX_SIZE // TILE_SIZE ==0 else MATRIX_SIZE // TILE_SIZE
     GRID_SIZE2=1 if MATRIX_SIZE2 // TILE_SIZE2 ==0 else MATRIX_SIZE2 // TILE_SIZE2
 
+    #Print the GRID configuration
 
-    # create two easily recognized arrays using numpy. The type must be float32
+    module_logger.info('The kernel grid is setted as: '+'('+str(GRID_SIZE)+','+str(GRID_SIZE2)+') and ('+str(
+        TILE_SIZE)+','+str(TILE_SIZE2)+')')
+
+    headers=["Grid size x","Grid size y","Tile size x","Tile size y"]
+    printdata=[GRID_SIZE,GRID_SIZE2,TILE_SIZE,TILE_SIZE2]
+    stype('\n'+'CUDA grid properties:')
+    print (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
+                             tablefmt='rst', stralign="left") +'\n')
+
+    # Create two easily recognized arrays using numpy. The type must be float32
     # because CUDA does not manage well with double precission things yet.
     # MUST CHECK THIS
 
@@ -123,6 +147,9 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
 
     #a_cpu = obs_map.test*np.ones((MATRIX_SIZE, MATRIX_SIZE2)).astype(np.float64)+np.ones((MATRIX_SIZE,
     # MATRIX_SIZE2)).astype(np.float64)
+
+    module_logger.info('Loading the arrays in CPU.')
+
     density = data.density*np.ones((dim_x, dim_y)).astype(np.float64)
     eps = data.eps*np.ones((dim_x, dim_y)).astype(np.float64)
     velx = data.velx*np.ones((dim_x, dim_y)).astype(np.float64)
@@ -139,7 +166,20 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     #b_cpu = np.random.random((MATRIX_SIZE, MATRIX_SIZE2)).astype(np.float64)
 
 
+
+    module_logger.info('CPU arrays correctly loaded.')
+
+    #Check if the system has enought memory for the calculation
+
+    cuda_toolbox.cuda_mem_check(device_attr,max_cell_path*10,
+                               (density,eps,velx,vely,velz,bx,by,bz,a_cpu,b_cpu,jet_limits))
+
+
     # transfer host (CPU) memory to device (GPU) memory
+
+    module_logger.info('Loading the arrays in GPU.')
+
+
     a_gpu = gpuarray.to_gpu(a_cpu)
     b_gpu = gpuarray.to_gpu(b_cpu)
 
@@ -158,9 +198,15 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # create empty gpu array for the result
     c_gpu = gpuarray.empty((MATRIX_SIZE, MATRIX_SIZE2), np.float64)
 
+    module_logger.info('GPU arrays correctly loaded.')
+
+
     # get the kernel code from the template
     # by specifying the dimensional constant values.
     # This is only a dictionary substitution of the string to make the kernell call cleaner.
+
+    module_logger.info('Substituting values in kernel code.')
+
 
     kernel_code = kernel_code_template % {
         'MATRIX_SIZE': MATRIX_SIZE,
@@ -171,11 +217,18 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
         'Y_MIN': y_min,
         'Y_MAX': y_max,
         'Z_MIN': z_min,
-        'Z_MAX': z_max
+        'Z_MAX': z_max,
+        'MAX_CELLS': int(max_cell_path+10) #The +10 is only for security pourposes
         }
 
+
     # Compile the kernel code using pycuda.compiler
+    module_logger.info('Triying to compile the kernel.')
+
     mod = compiler.SourceModule(kernel_code)
+
+    module_logger.info('Kernel correctly compiled.')
+
 
     # get the kernel function from the compiled module
     matrixmul = mod.get_function("MatrixMulKernel")
@@ -186,6 +239,8 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     end = driver.Event()
 
     start.record() # start timing
+
+    module_logger.info('Starting CUDA Kernel.')
 
     # call the kernel on the card
     matrixmul(
@@ -203,7 +258,13 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # calculate the run length
     end.synchronize()
     secs = start.time_till(end)*1e-3
-    stype( "Cuda kernel executed in %f seconds" % (secs) )
+
+    module_logger.ok( "Cuda kernel executed in %f seconds" % (secs))
+
+    cuda_toolbox.memory_occupance()
+
+
+
 
     # print the results
     print "-" * 80
@@ -219,8 +280,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     cosa=c_gpu.get()
     print cosa
     # del a_gpu,b_gpu,c_gpu,cosa
-    print image_dim_z,image_dim_y,eps.shape
-    print TILE_SIZE,TILE_SIZE2
+    print max_cell_path
 
     ax=plt.gca()
     im=ax.imshow(cosa,origin='lower',aspect=None)

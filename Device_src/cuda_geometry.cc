@@ -50,7 +50,7 @@ float x_lim = sqrt(dim_x*dim_x-z_cell*z_cell);
 float y_min = -sin(theta)*x_lim;
 float y_max = sin(theta)*x_lim+cos(theta)*dim_y;
 
-if(y_cell > y_min && y_cell < y_max){
+if(y_cell >= y_min && y_cell <= y_max){
 
     // Now we can calculate the x limits. These are a little tricky. There are two easy cases: theta=90,0. We
     // take account of these fist.

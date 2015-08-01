@@ -7,7 +7,7 @@ This program is created as a test to use CUDA to sum 2 arrays of numpy float32.
 
 
 import numpy as np
-from pycuda import driver, compiler, gpuarray, tools
+from pycuda_files import driver, compiler, gpuarray, tools
 
 
 
@@ -120,7 +120,7 @@ def printoptions(*args, **kwargs):
 # the apropiate tools in the pycuda module.
 
 
-import pycuda.autoinit
+import pycuda_files.autoinit
 
 
 # First, we start defining the Kernel. The kernel must accept

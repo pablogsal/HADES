@@ -93,8 +93,8 @@ __global__ void MatrixMulKernel(double *density,double *eps,double *velx,double 
           if( x_max > x_min){
 
 //        	  float *restd = new float[int(x_max-x_min)+3];
-              float eldeng[3000];
-              float emini[3000];
+              float eldeng[ %(MAX_CELLS)s ];
+              float emini[ %(MAX_CELLS)s ];
 
         	  //Initialize the number of cells accumulator.
 
@@ -147,40 +147,16 @@ __global__ void MatrixMulKernel(double *density,double *eps,double *velx,double 
 
 		//Continue after x cell loop
 
-// PRUEBA DE OVERFLOW!!
-//		  float test[10];
-//		  float test5[6000];
-//     	  float num;
-//		  for ( int i = 0; i < 10; i++ ) {
-//			  num=pow(  float(2.0)  ,  float(0.345)  );
-//			  test[i]= num;
-//
-//
-//
-//		  }
-// PRUEBA DE QUE EL JET SALE BIEN EN LA IMAGEN!!
-//          int yy= y * blockDim.x * gridDim.x;
-//
-//          if(y<dim_x){
-//
-//        	  yy= (dim_x-y-1)* blockDim.x * gridDim.x;
-//          }
-//          else{
-//        	  yy= (y-dim_x)* blockDim.x * gridDim.x;
-//          }
-//
-//
-//             c[offset] =density[ x + yy];
-//
-          c[offset] = sum;
+          float num = over_flow();
+          c[offset] = x_max-x_min;
 
 		  
       }
      else{ //What to do if we are out of thread.
 		 
-    	 c[offset] =-12;
+
           // This printf is only for fun
    
-          // printf("I am out of thread (%% i,%% i) \\n ",x,y);
+           printf("I am out of thread (%% i,%% i) \\n ",x,y);
       }
 }
