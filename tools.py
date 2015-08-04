@@ -3,15 +3,22 @@ __author__ = 'pablogsal'
 import sys,time,random
 import logging
 
-
 typing_speed = 1200 #wpm
+
 def stype(t):
-    for l in t:
-        sys.stdout.write(l)
-        sys.stdout.flush()
-        time.sleep(random.random()*10.0/typing_speed)
-    #sys.stdout.write('.....Done.')
-    sys.stdout.write('\n')
+
+    if not qflag :
+        print(t)
+    else:
+        pass
+
+# def stype(t):
+#     for l in t:
+#         sys.stdout.write(l)
+#         sys.stdout.flush()
+#         time.sleep(random.random()*10.0/typing_speed)
+#     #sys.stdout.write('.....Done.')
+#     sys.stdout.write('\n')
 
 
 

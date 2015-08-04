@@ -33,7 +33,7 @@ class bessel_integrals(object):
         self.xvals=self.f_array.transpose()[0]
 
         self.f_val=self.f_array.transpose()[1]
-        self.g_val=self.f_array.transpose()[1]
+        self.g_val=self.g_array.transpose()[1]
 
         self.logger.info('Data readed correctly from files: '+importfileF.split('/')[-1]+' , '
                                                              +importfileG.split('/')[-1]+'.')

@@ -127,10 +127,9 @@ class imput_parameters(object):
                 2e0-self.gam_sp))/(1e0-self.rate_ene**(1e0-self.gam_sp))
 
             if  self.non_thermal_density < 1 :
-
-                print(bcolors.FAIL +"ERROR - Energy factor for non-thermal e- is <1 "+ bcolors.ENDC)
-                print(bcolors.FAIL +'The actual value is = '+str(self.non_thermal_density)+"."+'\n'+ bcolors.ENDC)
-                sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+                self.logger.error('Energy factor for non-thermal e- is <1.')
+                self.logger.error('The actual value is = '+str(self.non_thermal_density)+".")
+                exit()
 
         else:
             self.min_energy=self.non_thermal_density*eps*e_mass*c*c*(self.gam_sp-2.e0)/(self.gam_sp-1.e0)*(1.e0-rate_ene**(
@@ -155,7 +154,7 @@ class imput_parameters(object):
                        self.luminosity_distance]
 
             stype('\n'+'Input data from config.INI')
-            print (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
+            stype (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
                              tablefmt='rst', stralign="left") +'\n')
 
 
@@ -200,7 +199,7 @@ class constants(object):
         #Get class logger
         self.logger = logging.getLogger('HADES.importer.constants')
         self.logger.info('Creating an instance of constants')
-        self.c=2.9979e10 #speed of light
+        self.c =2.9979e10 #speed of light
         self.e_mass=9.1094e-28 #rest-mass of the electron
         self.e_charge= 4.8032e-10 #charge of the electron in 'esu'
         self.c1 =3.e0*self.e_charge/4.e0/np.pi/self.e_mass/self.e_mass/self.e_mass/self.c/self.c/self.c/self.c/self.c

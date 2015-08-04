@@ -1,0 +1,160 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 10.1' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      5651,        150]
+NotebookOptionsPosition[      5180,        128]
+NotebookOutlinePosition[      5534,        144]
+CellTagsIndexPosition[      5491,        141]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+  "code", "=", 
+   "\"\< BFL_X= BFO_X*DCOS(AZICELL)*DCOS(ELECELL)\n     &      \
++BFO_Y*DSIN(AZICELL)*DCOS(ELECELL)+BFO_Z*DSIN(ELECELL)\n\>\""}], 
+  ";"}]], "Input",
+ CellChangeTimes->{{3.647430194301405*^9, 3.647430197091164*^9}, {
+   3.647430420095962*^9, 3.647430446720377*^9}, 3.647430616650755*^9, 
+   3.647430815903417*^9, 3.647430862050951*^9, 3.6474309068488693`*^9}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"rules", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"\"\<**\>\"", "\[Rule]", "\"\<^\>\""}], ",", 
+       RowBox[{"\"\<(cel)\>\"", "\[Rule]", "\"\<[cell]\>\""}], ",", 
+       RowBox[{"\"\<(ixa,iya)\>\"", "\[Rule]", "\"\<[rho,zeta]\>\""}], ",", 
+       RowBox[{"\"\<dcos\>\"", "\[Rule]", "\"\<Cos\>\""}], ",", 
+       RowBox[{"\"\<dsin\>\"", "\[Rule]", "\"\<Sin\>\""}], ",", 
+       RowBox[{"\"\<(theta)\>\"", "\[Rule]", "\"\<[theta]\>\""}], ",", 
+       RowBox[{"\"\<=\>\"", "\[Rule]", "\"\<==\>\""}], ",", 
+       RowBox[{"\"\<(azicell)\>\"", "\[Rule]", "\"\<[azicell]\>\""}], ",", 
+       RowBox[{"\"\<(elecell)\>\"", "\[Rule]", "\"\<[elecell]\>\""}]}], 
+      "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"newcode", "=", 
+     RowBox[{"StringReplace", "[", 
+      RowBox[{
+       RowBox[{"StringDelete", "[", 
+        RowBox[{
+         RowBox[{"ToLowerCase", "[", "code", "]"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+          "\"\<&\>\"", ",", "\"\< \>\"", ",", "\"\<\\n\>\"", ",", 
+           "\"\<.d0\>\""}], "}"}]}], "]"}], ",", "rules"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"ToExpression", "[", "newcode", "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.647430201994855*^9, 3.647430239297007*^9}, {
+  3.647430358266075*^9, 3.6474304243259277`*^9}, {3.64743047900439*^9, 
+  3.6474305302995253`*^9}, {3.647430573462017*^9, 3.647430575229907*^9}, {
+  3.6474306341011143`*^9, 3.647430670672552*^9}, {3.647430700912956*^9, 
+  3.6474307157100487`*^9}, {3.647430756672748*^9, 3.647430806657057*^9}, {
+  3.6474308490163527`*^9, 3.647430852998487*^9}, {3.647430912964905*^9, 
+  3.647430982840536*^9}}],
+
+Cell[BoxData[
+ RowBox[{"bfl_x", "\[Equal]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Cos", "[", "azicell", "]"}], " ", 
+    RowBox[{"Cos", "[", "elecell", "]"}], " ", "bfo_x"}], "+", 
+   RowBox[{
+    RowBox[{"Cos", "[", "elecell", "]"}], " ", "bfo_y", " ", 
+    RowBox[{"Sin", "[", "azicell", "]"}]}], "+", 
+   RowBox[{"bfo_z", " ", 
+    RowBox[{"Sin", "[", "elecell", "]"}]}]}]}]], "Output",
+ CellChangeTimes->{
+  3.647430916738727*^9, {3.647430949151417*^9, 3.6474309832813873`*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Union", "@", 
+  RowBox[{"DeleteDuplicates", "[", 
+   RowBox[{"StringDelete", "[", 
+    RowBox[{
+     RowBox[{"StringSplit", "[", 
+      RowBox[{
+      "\"\<      DOUBLE PRECISION ELDENG(MAXCELL),EMINI(MAXCELL)\n      \
+DOUBLE PRECISION MFIELD(MAXCELL)\n      DOUBLE PRECISION ANG(MAXCELL)\n      \
+DOUBLE PRECISION RESTD(MAXCELL)\n      DOUBLE PRECISION \
+ELDENG(MAXCELL),EMINI(MAXCELL)\n      DOUBLE PRECISION DELTAO(MAXCELL)\n      \
+DOUBLE PRECISION CHIH(MAXCELL)\n      DOUBLE PRECISION RMDS(MAXCELL)\n      \
+DOUBLE PRECISION RESTD(MAXCELL)\n      DOUBLE PRECISION \
+ELDENG(MAXCELL),EMINI(MAXCELL)\n      DOUBLE PRECISION DELTAO(MAXCELL)\n      \
+DOUBLE PRECISION MFIELD(MAXCELL)\n      DOUBLE PRECISION ANG(MAXCELL)\n      \
+DOUBLE PRECISION CHIH(MAXCELL)\n      DOUBLE PRECISION RMDS(MAXCELL)\n \\t \
+WRITE(*,*) MAXCELL\n\\t WRITE(*,*) MAXCELL\n      DOUBLE PRECISION \
+RESTD(MAXCELL)\n      DOUBLE PRECISION DELTAO(MAXCELL)\n      DOUBLE \
+PRECISION MFIELD(MAXCELL)\n      DOUBLE PRECISION ANG(MAXCELL)\n      DOUBLE \
+PRECISION CHIH(MAXCELL)\n      DOUBLE PRECISION RMDS(MAXCELL)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{"\"\<\\n\>\"", ",", "\"\<,\>\""}], "}"}]}], "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+      "\"\<DOUBLE PRECISION\>\"", ",", "\"\< \>\"", ",", "\"\<\\t\>\"", ",", 
+       "\"\<WRITE(*\>\"", ",", "\"\<*)\>\""}], "}"}]}], "]"}], 
+   "]"}]}]], "Input",
+ CellChangeTimes->{{3.6474313036320887`*^9, 3.647431445329336*^9}}],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"\<\"\"\>", ",", "\<\"ANG(MAXCELL)\"\>", 
+   ",", "\<\"CHIH(MAXCELL)\"\>", ",", "\<\"DELTAO(MAXCELL)\"\>", 
+   ",", "\<\"ELDENG(MAXCELL)\"\>", ",", "\<\"EMINI(MAXCELL)\"\>", 
+   ",", "\<\"MAXCELL\"\>", ",", "\<\"MFIELD(MAXCELL)\"\>", 
+   ",", "\<\"RESTD(MAXCELL)\"\>", ",", "\<\"RMDS(MAXCELL)\"\>"}], 
+  "}"}]], "Output",
+ CellChangeTimes->{{3.647431306846032*^9, 3.647431445967593*^9}}]
+}, Open  ]]
+},
+WindowSize->{1345, 688},
+WindowMargins->{{4, Automatic}, {Automatic, 4}},
+FrontEndVersion->"10.1 for Mac OS X x86 (32-bit, 64-bit Kernel) (March 23, \
+2015)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 410, 9, 63, "Input"],
+Cell[CellGroupData[{
+Cell[993, 33, 1737, 36, 97, "Input"],
+Cell[2733, 71, 481, 12, 39, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3251, 88, 1484, 27, 403, "Input"],
+Cell[4738, 117, 426, 8, 39, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

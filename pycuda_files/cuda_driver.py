@@ -7,12 +7,12 @@ import numpy as np
 import os
 import pycuda
 from pycuda import driver, compiler, gpuarray, tools
-import math
 from tools import *
-import cuda_toolbox
+import cuda_toolbox, cuda_dict
 import logging
-import tabulate
 import matplotlib.pyplot as plt
+
+
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
 import seaborn.apionly as sns
@@ -25,7 +25,7 @@ module_logger = logging.getLogger('HADES.cuda_driver')
 
 
 # @memory_exit
-def kernel_driver(data,input_par,obs_map,jet_limits):
+def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     module_logger.info('Starting the CUDA kernel driver.')
 
 
@@ -47,11 +47,18 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     image_dim_y=int(np.round(obs_map.y_max)-np.round(obs_map.y_min))
     image_dim_z=int(np.round(obs_map.z_max)-np.round(obs_map.z_min))
 
+
     #Calculate max cells in a path throught the arrays
 
     max_cell_path=np.round(np.sqrt(image_dim_z**2+image_dim_y**2))
 
     module_logger.info('Max cells in the path are '+str(max_cell_path)+'.')
+
+
+
+
+
+
 
 
     # When importing this module we are initializing the device.
@@ -110,33 +117,11 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # So, the grid will be created dividing the MATRIX_SIZE per the TILE_SIZE
     # and then using TILE_SIZE* TILE_SIZE2 threads per block.
 
+    cuda_grid=cuda_toolbox.cuda_grid(image_dim_z,image_dim_y)
 
-    MATRIX_SIZE = image_dim_z
-    MATRIX_SIZE2 = image_dim_y
+    cuda_grid.set_opt_tile()
+    cuda_grid.print_grid()
 
-    #Let's find divisors of the matrix to construct the blocks in an optimisez way
-
-    divisors_x=np.array(list(cuda_toolbox.divisorGenerator(image_dim_z)))
-    divisors_y=np.array(list(cuda_toolbox.divisorGenerator(image_dim_y)))
-
-
-    TILE_SIZE = divisors_x[divisors_x<32][-1]
-    TILE_SIZE2 = divisors_y[divisors_y<32][-1]
-
-
-    GRID_SIZE= 1 if MATRIX_SIZE // TILE_SIZE ==0 else MATRIX_SIZE // TILE_SIZE
-    GRID_SIZE2=1 if MATRIX_SIZE2 // TILE_SIZE2 ==0 else MATRIX_SIZE2 // TILE_SIZE2
-
-    #Print the GRID configuration
-
-    module_logger.info('The kernel grid is setted as: '+'('+str(GRID_SIZE)+','+str(GRID_SIZE2)+') and ('+str(
-        TILE_SIZE)+','+str(TILE_SIZE2)+')')
-
-    headers=["Grid size x","Grid size y","Tile size x","Tile size y"]
-    printdata=[GRID_SIZE,GRID_SIZE2,TILE_SIZE,TILE_SIZE2]
-    stype('\n'+'CUDA grid properties:')
-    print (tabulate.tabulate(zip(headers,printdata), headers=['Variable Name', 'Value'],
-                             tablefmt='rst', stralign="left") +'\n')
 
     # Create two easily recognized arrays using numpy. The type must be float32
     # because CUDA does not manage well with double precission things yet.
@@ -145,11 +130,15 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # For some reason, CUDA only works well if you multiply your matrix with a numpy ones dtype matrix, so keep that
     # in mind.
 
-    #a_cpu = obs_map.test*np.ones((MATRIX_SIZE, MATRIX_SIZE2)).astype(np.float64)+np.ones((MATRIX_SIZE,
-    # MATRIX_SIZE2)).astype(np.float64)
+    #a_cpu = obs_map.test*np.ones((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)+np.ones((cuda_grid.grid_x,
+    # cuda_grid.grid_y)).astype(np.float64)
 
     module_logger.info('Loading the arrays in CPU.')
 
+
+
+    a_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
+    b_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
     density = data.density*np.ones((dim_x, dim_y)).astype(np.float64)
     eps = data.eps*np.ones((dim_x, dim_y)).astype(np.float64)
     velx = data.velx*np.ones((dim_x, dim_y)).astype(np.float64)
@@ -158,13 +147,12 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     bx = data.bx*np.ones((dim_x, dim_y)).astype(np.float64)
     by = data.by*np.ones((dim_x, dim_y)).astype(np.float64)
     bz = data.bz*np.ones((dim_x, dim_y)).astype(np.float64)
+    jet_limits_cpu=jet_limits*np.ones(dim_y).astype(np.int64)
+    besselx=bessel.xvals*np.ones(len(bessel.xvals)).astype(np.float64)
+    besself=bessel.f_val*np.ones(len(bessel.xvals)).astype(np.float64)
+    besselg=bessel.g_val*np.ones(len(bessel.xvals)).astype(np.float64)
 
-
-    a_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
-    b_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
-
-    #b_cpu = np.random.random((MATRIX_SIZE, MATRIX_SIZE2)).astype(np.float64)
-
+    error_test=np.zeros(10)
 
 
     module_logger.info('CPU arrays correctly loaded.')
@@ -172,7 +160,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     #Check if the system has enought memory for the calculation
 
     cuda_toolbox.cuda_mem_check(device_attr,max_cell_path*10,
-                               (density,eps,velx,vely,velz,bx,by,bz,a_cpu,b_cpu,jet_limits))
+                               (density,eps,velx,vely,velz,bx,by,bz,a_cpu,b_cpu,jet_limits,besselx,besself,besselg))
 
 
     # transfer host (CPU) memory to device (GPU) memory
@@ -180,23 +168,24 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     module_logger.info('Loading the arrays in GPU.')
 
 
-    a_gpu = gpuarray.to_gpu(a_cpu)
-    b_gpu = gpuarray.to_gpu(b_cpu)
-
-
-    density_gpu=gpuarray.to_gpu(density)
-    eps_gpu=gpuarray.to_gpu(eps)
-    velx_gpu=gpuarray.to_gpu(velx)
-    vely_gpu=gpuarray.to_gpu(vely)
-    velz_gpu=gpuarray.to_gpu(velz)
-    bx_gpu=gpuarray.to_gpu(bx)
-    by_gpu=gpuarray.to_gpu(by)
-    bz_gpu=gpuarray.to_gpu(bz)
-    jet_limits_gpu=gpuarray.to_gpu(jet_limits*np.ones((dim_y)).astype(np.float64))
-
-
+    a_gpu = gpuarray.to_gpu(a_cpu.astype(np.float32))
+    b_gpu = gpuarray.to_gpu(b_cpu.astype(np.float32))
+    density_gpu=gpuarray.to_gpu(density.astype(np.float32))
+    eps_gpu=gpuarray.to_gpu(eps.astype(np.float32))
+    velx_gpu=gpuarray.to_gpu(velx.astype(np.float32))
+    vely_gpu=gpuarray.to_gpu(vely.astype(np.float32))
+    velz_gpu=gpuarray.to_gpu(velz.astype(np.float32))
+    bx_gpu=gpuarray.to_gpu(bx.astype(np.float32))
+    by_gpu=gpuarray.to_gpu(by.astype(np.float32))
+    bz_gpu=gpuarray.to_gpu(bz.astype(np.float32))
+    jet_limits_gpu=gpuarray.to_gpu( jet_limits_cpu.astype(np.int32) )
+    besselx_gpu=gpuarray.to_gpu(besselx.astype(np.float32))
+    besself_gpu=gpuarray.to_gpu(besself.astype(np.float32))
+    besselg_gpu=gpuarray.to_gpu(besselg.astype(np.float32))
+    error_test_gpu=gpuarray.to_gpu(error_test.astype(np.int32))
     # create empty gpu array for the result
-    c_gpu = gpuarray.empty((MATRIX_SIZE, MATRIX_SIZE2), np.float64)
+    c_gpu = gpuarray.empty((cuda_grid.grid_x, cuda_grid.grid_y), np.float32)
+
 
     module_logger.info('GPU arrays correctly loaded.')
 
@@ -208,21 +197,13 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     module_logger.info('Substituting values in kernel code.')
 
 
-    kernel_code = kernel_code_template % {
-        'MATRIX_SIZE': MATRIX_SIZE,
-        'MATRIX_SIZE2': MATRIX_SIZE2,
-        'ANGLE': theta,
-        'DIM_X': dim_x,
-        'DIM_Y': dim_y,
-        'Y_MIN': y_min,
-        'Y_MAX': y_max,
-        'Z_MIN': z_min,
-        'Z_MAX': z_max,
-        'MAX_CELLS': int(max_cell_path+10) #The +10 is only for security pourposes
-        }
+    kernel_code = cuda_dict.generate_parameter_dict(kernel_code_template,cuda_grid,input_par,obs_map,constants)
 
+    module_logger.info('Values correctly substituted.')
 
     # Compile the kernel code using pycuda.compiler
+
+
     module_logger.info('Triying to compile the kernel.')
 
     mod = compiler.SourceModule(kernel_code)
@@ -245,13 +226,14 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     # call the kernel on the card
     matrixmul(
         # inputs
-        density_gpu,eps_gpu,velx_gpu,vely_gpu,velz_gpu,bx_gpu,by_gpu,bz_gpu,jet_limits_gpu,a_gpu, b_gpu,
+        density_gpu,eps_gpu,velx_gpu,vely_gpu,velz_gpu,bx_gpu,by_gpu,bz_gpu,jet_limits_gpu,a_gpu,b_gpu,
+        besselx_gpu,besself_gpu,besselg_gpu,error_test_gpu,
         # output
         c_gpu,
         # Grid definition -> number of blocks x number of blocks.
-        grid = (GRID_SIZE2,GRID_SIZE),
+        grid = (cuda_grid.block_y,cuda_grid.block_x),
         # block definition -> number of threads x number of threads
-        block = (TILE_SIZE2, TILE_SIZE, 1),
+        block = (cuda_grid.tile_y, cuda_grid.tile_x, 1),
         )
 
     end.record() # end timing
@@ -278,9 +260,8 @@ def kernel_driver(data,input_par,obs_map,jet_limits):
     print "-" * 80
     print "Matrix C (GPU):"
     cosa=c_gpu.get()
-    print cosa
+    print cosa[130]
     # del a_gpu,b_gpu,c_gpu,cosa
-    print max_cell_path
 
     ax=plt.gca()
     im=ax.imshow(cosa,origin='lower',aspect=None)

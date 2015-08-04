@@ -8,7 +8,11 @@ import geometry
 import bessel_calc
 from pycuda_files import cuda_driver
 from tools import *
-import logging
+import logging, argparse
+import __builtin__
+
+import os
+
 
 
 
@@ -21,17 +25,52 @@ import logging
 #
 
 
-# First of all, create logger
 
+# Config the parser------------------------------------------------------
+
+
+######## START OF PARSER CREATION #########
+
+parser = argparse.ArgumentParser(description='Simulate synchrotron emission from RMHD data file.')
+
+parser.add_argument('RMHDfile', metavar='RMHDfile', type=str, nargs=1,
+                   help='A path to the file with the RMHD data.')
+
+parser.add_argument('-v', dest='verbose_flag', action='store_const',
+                   const=True, default=False,
+                   help='Prints more info (default: False)')
+
+parser.add_argument('-quiet', dest='quiet_flag', action='store_const',
+                   const=True, default=False,
+                   help='Prints no data-related info (default: False)')
+
+
+args = parser.parse_args()
+
+#Bad idea of making global the quiet flag:
+
+__builtin__.qflag = args.quiet_flag
+
+
+######## END OF PARSER CREATION #########
+
+# Create logger-------------------------------------------------
+
+######## START OF LOGGER CREATION #########
 # create logger with 'spam_application'
 logger = logging.getLogger('HADES')
 logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
 fh = logging.FileHandler('Hades_log.log')
 fh.setLevel(logging.DEBUG)
-# create console handler with a higher log level
+# create console handler
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+
+if args.verbose_flag:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.WARNING)
+
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
@@ -45,12 +84,14 @@ logging.Logger.ok = log_OK
 logging.Logger.fail_check=log_WARNING
 ######## END OF LOGGER CREATION #########
 
+# Now, let's do really fun stuff with the program------------------------------
+
 
 #Show program LOGO
 logger.info('Showing program logo')
 
-logo=open("logo.txt", "r").read()
-print(logo)
+logo=open(os.path.dirname(os.path.realpath(__file__))+"/logo.txt", "r").read()
+stype(logo)
 
 logger.info('End of program logo')
 
@@ -59,10 +100,10 @@ logger.info('End of program logo')
 logger.info('Opening the file as binary input')
 
 try:
-    f=open("JMC2RAU", "rb")
+    f=open( os.path.abspath(args.RMHDfile[0])    , "rb")
     logger.info('File '+str(f.name)+' opened correctly')
 except IOError:
-    logger.critical('File not found')
+    logger.error('File not found')
     exit()
 
 
@@ -73,6 +114,11 @@ data.rmhd_test()
 
 # Instanciate the class parameters with the input file
 par=importer.imput_parameters("")
+
+
+#Instanciate the constants class
+
+const=importer.constants(par.gam_sp)
 
 #Open the output_file
 logger.info('Opening the output file '+par.result_file+'.')
@@ -129,6 +175,7 @@ bessel=bessel_calc.bessel_integrals()
 
 
 logger.info('Starting the CUDA driver.')
-cosa= cuda_driver.kernel_driver(data,par,obs_map,jet_limits)
+
+cuda_driver.kernel_driver(data,par,obs_map,jet_limits,const,bessel)
 
 

@@ -75,7 +75,7 @@ class image(object):
 
         # Size of the cells in cm
 
-        self.cell_lengh=beam_radius/beam_cells*3.0856e18
+        self.cell_size=beam_radius/beam_cells*3.0856e18
 
         # Angular distance (in cm)
 
@@ -83,7 +83,7 @@ class image(object):
 
         #Size of cells (or pixels) in mas
 
-        self.cell_area = self.cell_lengh/self.angular_distance*180.e0/np.pi*60.e0*60.e0*1.e3
+        self.cell_area = self.cell_size/self.angular_distance*180.e0/np.pi*60.e0*60.e0*1.e3
 
         # Create the array with indexes
 
