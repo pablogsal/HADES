@@ -43,6 +43,9 @@ if __name__ == '__main__':
                        const=True, default=False,
                        help='Construct polarization map and background images (default: False)')
 
+    parser.add_argument('--keys', dest='ini_keys', default='STANDARD_KEYS',
+                       help='Use the keys in the .ini file (default: STANDARD_KEYS)')
+
     parser.add_argument('-quiet', dest='quiet_flag', action='store_const',
                        const=True, default=False,
                        help='Prints no data-related info (default: False)')
@@ -54,7 +57,6 @@ if __name__ == '__main__':
 
     __builtin__.qflag = args.quiet_flag
 
-
     ######## END OF PARSER CREATION #########
 
     # Create logger-------------------------------------------------
@@ -64,7 +66,7 @@ if __name__ == '__main__':
     logger = logging.getLogger('HADES')
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
-    fh = logging.FileHandler('Hades_log.log')
+    fh = logging.FileHandler(os.path.dirname(os.path.realpath(__file__))+'/results/Hades_log.log')
     fh.setLevel(logging.DEBUG)
     # create console handler
     ch = logging.StreamHandler()
@@ -125,11 +127,16 @@ if __name__ == '__main__':
 
 
     # Instanciate the class parameters with the input file
-    par=importer.imput_parameters("")
+    par=importer.imput_parameters("",args.ini_keys)
 
 
     # Instanciate the class rmhd_data with the binary information from the file
-    data=importer.rmhd_data_y(f,par)
+
+    if args.ini_keys == 'STANDARD_KEYS':
+        data=importer.rmhd_data(f)
+    else:
+        data=importer.rmhd_data_y(f,par)
+
     data.rmhd_test()
 
 

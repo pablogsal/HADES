@@ -31,7 +31,7 @@ class bcolors:
 
 class imput_parameters(object):
 
-    def __init__(self,importfile):
+    def __init__(self,importfile,key):
         #Get class logger
 
         self.logger = logging.getLogger('HADES.importer.imput_parameters')
@@ -56,26 +56,26 @@ class imput_parameters(object):
         #Read the variables from the config file.
         self.logger.info('Reading input values')
 
-        self.hubble= float( Config.get('STANDARD_KEYS',"Hubble") )
-        self.rate_ene=float( Config.get('STANDARD_KEYS',"Rate_ene") )
-        self.gam_sp=float( Config.get('STANDARD_KEYS',"Gam_sp") )
-        self.beam_radius=float( Config.get('STANDARD_KEYS',"Beam_radius") )
-        self.beam_radius_cells=int( Config.get('STANDARD_KEYS',"Beam_radius_cells") )
-        self.tracer_limit=float( Config.get('STANDARD_KEYS',"Tracer_limit") )
-        self.redshift=float( Config.get('STANDARD_KEYS',"Redshift") )
-        self.viewing_angle=float( Config.get('STANDARD_KEYS',"Viewing_angle") )
-        self.RMHD_data_file=Config.get('STANDARD_KEYS',"RMHD_data_file")
-        self.x_var_dim=int( Config.get('STANDARD_KEYS',"x_var_dim") )
-        self.y_var_dim=int( Config.get('STANDARD_KEYS',"y_var_dim") )
-        self.x_grid_dim=int( Config.get('STANDARD_KEYS',"x_grid_dim") )
-        self.y_grid_dim=int( Config.get('STANDARD_KEYS',"y_grid_dim") )
-        self.scalex=int( Config.get('STANDARD_KEYS',"scalex") )
-        self.scaley=int( Config.get('STANDARD_KEYS',"scaley") )
-        self.non_thermal_fraction=float( Config.get('STANDARD_KEYS',"Non_termal_fraction") )
-        self.non_thermal_density=float(Config.get('STANDARD_KEYS',"Non_termal_density") )
-        self.external_density=float(Config.get('STANDARD_KEYS',"External_density") )
-        self.observation_freq=float(Config.get('STANDARD_KEYS',"Observation_freq") )*1.e9 # Pass to Hz the values
-        self.result_file=Config.get('STANDARD_KEYS',"Result_file")
+        self.hubble= float( Config.get(key,"Hubble") )
+        self.rate_ene=float( Config.get(key,"Rate_ene") )
+        self.gam_sp=float( Config.get(key,"Gam_sp") )
+        self.beam_radius=float( Config.get(key,"Beam_radius") )
+        self.beam_radius_cells=int( Config.get(key,"Beam_radius_cells") )
+        self.tracer_limit=float( Config.get(key,"Tracer_limit") )
+        self.redshift=float( Config.get(key,"Redshift") )
+        self.viewing_angle=float( Config.get(key,"Viewing_angle") )
+        self.RMHD_data_file=Config.get(key,"RMHD_data_file")
+        self.x_var_dim=int( Config.get(key,"x_var_dim") )
+        self.y_var_dim=int( Config.get(key,"y_var_dim") )
+        self.x_grid_dim=int( Config.get(key,"x_grid_dim") )
+        self.y_grid_dim=int( Config.get(key,"y_grid_dim") )
+        self.scalex=int( Config.get(key,"scalex") )
+        self.scaley=int( Config.get(key,"scaley") )
+        self.non_thermal_fraction=float( Config.get(key,"Non_termal_fraction") )
+        self.non_thermal_density=float(Config.get(key,"Non_termal_density") )
+        self.external_density=float(Config.get(key,"External_density") )
+        self.observation_freq=float(Config.get(key,"Observation_freq") )*1.e9 # Pass to Hz the values
+        self.result_file=Config.get(key,"Result_file")
         self.min_energy=1.0e-04 # Standar min energy of non-thermal electrons
         self.q0= 0.5 # Cosmological parameter
         self.h0=self.hubble*1.e5/3.0856e18/1.e6
