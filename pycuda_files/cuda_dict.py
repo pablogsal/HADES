@@ -28,7 +28,7 @@ def generate_parameter_dict(kernel_code_template,cuda_grid,input_par,obs_map,con
 
     #Calculate max cells in a path throught the arrays
 
-    max_cell_path=np.round(np.sqrt(image_dim_z**2+image_dim_y**2))
+    max_cell_path=np.round(np.sqrt((dim_x*input_par.scalex)**2+(dim_y*input_par.scaley)**2))
 
 
 
@@ -58,10 +58,11 @@ def generate_parameter_dict(kernel_code_template,cuda_grid,input_par,obs_map,con
         'RATE_ENE': input_par.rate_ene,
         'REDSHIFT': input_par.redshift,
         'DS': obs_map.cell_size,
-        'C1': constants.c1
+        'C1': constants.c1,
+        'SCALEX': input_par.scalex,
+        'SCALEY': input_par.scaley
 
         }
-
 
     module_logger.info('Parameters correctly substituted in the source code.')
 

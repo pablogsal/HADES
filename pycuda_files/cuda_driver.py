@@ -1,8 +1,6 @@
 __author__ = 'pablogsal'
 
 
-# This code is for pretty printing numpy arrays
-import contextlib
 import numpy as np
 import os
 import pycuda
@@ -10,13 +8,7 @@ from pycuda import driver, compiler, gpuarray, tools
 from tools import *
 import cuda_toolbox, cuda_dict
 import logging
-import matplotlib.pyplot as plt
 
-
-import matplotlib.cm as cm
-from matplotlib.colors import LogNorm
-import seaborn.apionly as sns
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 #Create logger for module
@@ -50,7 +42,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
 
     #Calculate max cells in a path throught the arrays
 
-    max_cell_path=np.round(np.sqrt(image_dim_z**2+image_dim_y**2))
+    max_cell_path=np.round(np.sqrt((dim_x*2)**2+(dim_y*2)**2))
 
     module_logger.info('Max cells in the path are '+str(max_cell_path)+'.')
 
@@ -136,9 +128,6 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     module_logger.info('Loading the arrays in CPU.')
 
 
-
-    a_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
-    b_cpu = np.zeros((image_dim_y, image_dim_z)).astype(np.float64)
     density = data.density*np.ones((dim_x, dim_y)).astype(np.float64)
     eps = data.eps*np.ones((dim_x, dim_y)).astype(np.float64)
     velx = data.velx*np.ones((dim_x, dim_y)).astype(np.float64)
@@ -149,10 +138,20 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     bz = data.bz*np.ones((dim_x, dim_y)).astype(np.float64)
     jet_limits_cpu=jet_limits*np.ones(dim_y).astype(np.int64)
     besselx=bessel.xvals*np.ones(len(bessel.xvals)).astype(np.float64)
-    besself=bessel.f_val*np.ones(len(bessel.xvals)).astype(np.float64)
-    besselg=bessel.g_val*np.ones(len(bessel.xvals)).astype(np.float64)
+    besself1=bessel.int_f1*np.ones(len(bessel.xvals)).astype(np.float64)
+    besself2=bessel.int_f1*np.ones(len(bessel.xvals)).astype(np.float64)
+    besselg1=bessel.int_g1*np.ones(len(bessel.xvals)).astype(np.float64)
+    besselg2=bessel.int_g2*np.ones(len(bessel.xvals)).astype(np.float64)
 
     error_test=np.zeros(10)
+
+
+    sia_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
+    sib_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
+    suab_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
+    tau_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
+    rmea_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
+    botf_cpu = np.zeros((cuda_grid.grid_x, cuda_grid.grid_y)).astype(np.float64)
 
 
     module_logger.info('CPU arrays correctly loaded.')
@@ -160,16 +159,24 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     #Check if the system has enought memory for the calculation
 
     cuda_toolbox.cuda_mem_check(device_attr,max_cell_path*10,
-                               (density,eps,velx,vely,velz,bx,by,bz,a_cpu,b_cpu,jet_limits,besselx,besself,besselg))
+                               (density,eps,velx,vely,velz,bx,by,bz,jet_limits,besselx,besself1,besself2,
+                                besselg1,besselg2,sia_cpu,sib_cpu,suab_cpu,tau_cpu,rmea_cpu,botf_cpu))
 
 
     # transfer host (CPU) memory to device (GPU) memory
 
     module_logger.info('Loading the arrays in GPU.')
 
+    #Output arrays
 
-    a_gpu = gpuarray.to_gpu(a_cpu.astype(np.float32))
-    b_gpu = gpuarray.to_gpu(b_cpu.astype(np.float32))
+    sia_gpu = gpuarray.to_gpu(sia_cpu.astype(np.float64))
+    sib_gpu = gpuarray.to_gpu(sib_cpu.astype(np.float64))
+    suab_gpu = gpuarray.to_gpu(suab_cpu.astype(np.float64))
+    tau_gpu = gpuarray.to_gpu(tau_cpu.astype(np.float64))
+    rmea_gpu = gpuarray.to_gpu(rmea_cpu.astype(np.float64))
+    botf_gpu = gpuarray.to_gpu(botf_cpu.astype(np.float64))
+
+    #Input arrays
     density_gpu=gpuarray.to_gpu(density.astype(np.float32))
     eps_gpu=gpuarray.to_gpu(eps.astype(np.float32))
     velx_gpu=gpuarray.to_gpu(velx.astype(np.float32))
@@ -180,11 +187,12 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     bz_gpu=gpuarray.to_gpu(bz.astype(np.float32))
     jet_limits_gpu=gpuarray.to_gpu( jet_limits_cpu.astype(np.int32) )
     besselx_gpu=gpuarray.to_gpu(besselx.astype(np.float32))
-    besself_gpu=gpuarray.to_gpu(besself.astype(np.float32))
-    besselg_gpu=gpuarray.to_gpu(besselg.astype(np.float32))
+    besself1_gpu=gpuarray.to_gpu(besself1.astype(np.float32))
+    besself2_gpu=gpuarray.to_gpu(besself2.astype(np.float32))
+    besselg1_gpu=gpuarray.to_gpu(besselg1.astype(np.float32))
+    besselg2_gpu=gpuarray.to_gpu(besselg2.astype(np.float32))
     error_test_gpu=gpuarray.to_gpu(error_test.astype(np.int32))
     # create empty gpu array for the result
-    c_gpu = gpuarray.empty((cuda_grid.grid_x, cuda_grid.grid_y), np.float32)
 
 
     module_logger.info('GPU arrays correctly loaded.')
@@ -218,18 +226,17 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     # create two timers so we measure time
     start = driver.Event()
     end = driver.Event()
-
-    start.record() # start timing
-
     module_logger.info('Starting CUDA Kernel.')
 
+
+    start.record() # start timing
     # call the kernel on the card
     matrixmul(
         # inputs
-        density_gpu,eps_gpu,velx_gpu,vely_gpu,velz_gpu,bx_gpu,by_gpu,bz_gpu,jet_limits_gpu,a_gpu,b_gpu,
-        besselx_gpu,besself_gpu,besselg_gpu,error_test_gpu,
+        density_gpu,eps_gpu,velx_gpu,vely_gpu,velz_gpu,bx_gpu,by_gpu,bz_gpu,jet_limits_gpu,
+        besselx_gpu,besself1_gpu,besself2_gpu,besselg1_gpu,besselg2_gpu,error_test_gpu,
         # output
-        c_gpu,
+        sia_gpu,sib_gpu,suab_gpu,tau_gpu,rmea_gpu,botf_gpu,
         # Grid definition -> number of blocks x number of blocks.
         grid = (cuda_grid.block_y,cuda_grid.block_x),
         # block definition -> number of threads x number of threads
@@ -246,32 +253,14 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     cuda_toolbox.memory_occupance()
 
 
+    #Rewrite the results to cpu arrays
 
+    sia_cpu = cuda_toolbox.delete_nan(sia_gpu.get())
+    sib_cpu = cuda_toolbox.delete_nan(sib_gpu.get())
+    suab_cpu = cuda_toolbox.delete_nan(suab_gpu.get())
+    tau_cpu = cuda_toolbox.delete_nan(tau_gpu.get())
+    rmea_cpu = cuda_toolbox.delete_nan(rmea_gpu.get())
+    botf_cpu = cuda_toolbox.delete_nan(botf_gpu.get())
 
-    # print the results
-    print "-" * 80
-    print "Matrix A (GPU):"
-    print a_gpu.get()
-
-    print "-" * 80
-    print "Matrix B (GPU):"
-    print b_gpu.get()
-
-    print "-" * 80
-    print "Matrix C (GPU):"
-    cosa=c_gpu.get()
-    print cosa[130]
-    # del a_gpu,b_gpu,c_gpu,cosa
-
-    ax=plt.gca()
-    im=ax.imshow(cosa,origin='lower',aspect=None)
-
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("top", size="8%", pad=0)
-    cb=plt.colorbar(im,orientation="horizontal",cax=cax)
-    cb.ax.xaxis.set_ticks_position('top')
-    fig = plt.gcf()
-    fig.set_size_inches(18.5, 10.5)
-    plt.savefig('foo.png', dpi=100)
-
+    return sia_cpu,sib_cpu,suab_cpu,tau_cpu,rmea_cpu,botf_cpu
 

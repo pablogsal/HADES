@@ -69,6 +69,8 @@ class imput_parameters(object):
         self.y_var_dim=int( Config.get('STANDARD_KEYS',"y_var_dim") )
         self.x_grid_dim=int( Config.get('STANDARD_KEYS',"x_grid_dim") )
         self.y_grid_dim=int( Config.get('STANDARD_KEYS',"y_grid_dim") )
+        self.scalex=int( Config.get('STANDARD_KEYS',"scalex") )
+        self.scaley=int( Config.get('STANDARD_KEYS',"scaley") )
         self.non_thermal_fraction=float( Config.get('STANDARD_KEYS',"Non_termal_fraction") )
         self.non_thermal_density=float(Config.get('STANDARD_KEYS',"Non_termal_density") )
         self.external_density=float(Config.get('STANDARD_KEYS',"External_density") )
@@ -121,19 +123,19 @@ class imput_parameters(object):
         c=2.9979e10 #speed of light
         e_mass=9.1094e-28 #rest-mass of the electron
 
-        if self.non_thermal_density == 0:
-            self.non_thermal_density=self.min_energy/eps/e_mass/c/c*(self.gam_sp-1e0)/(self.gam_sp-2e0)*(
+        if self.non_thermal_fraction == 0:
+            self.non_thermal_fraction=self.min_energy/eps/e_mass/c/c*(self.gam_sp-1e0)/(self.gam_sp-2e0)*(
                 1e0-self.rate_ene**(
                 2e0-self.gam_sp))/(1e0-self.rate_ene**(1e0-self.gam_sp))
 
-            if  self.non_thermal_density < 1 :
+            if  self.non_thermal_fraction < 1 :
                 self.logger.error('Energy factor for non-thermal e- is <1.')
                 self.logger.error('The actual value is = '+str(self.non_thermal_density)+".")
                 exit()
 
         else:
-            self.min_energy=self.non_thermal_density*eps*e_mass*c*c*(self.gam_sp-2.e0)/(self.gam_sp-1.e0)*(1.e0-rate_ene**(
-                1.e0-self.gam_sp))/(1.e0-rate_ene**(2.e0-self.gam_sp))
+            self.min_energy=self.non_thermal_density*eps*e_mass*c*c*(self.gam_sp-2.e0)/(self.gam_sp-1.e0)*(1.e0-self.rate_ene**(
+                1.e0-self.gam_sp))/(1.e0-self.rate_ene**(2.e0-self.gam_sp))
 
         self.logger.info('Energy factor correctly calculated.')
 
@@ -205,12 +207,6 @@ class constants(object):
         self.c1 =3.e0*self.e_charge/4.e0/np.pi/self.e_mass/self.e_mass/self.e_mass/self.c/self.c/self.c/self.c/self.c
         self.c_emiss= np.sqrt(3.0e0)*self.e_charge*self.e_charge*self.e_charge/16.e0/np.pi/self.e_mass/self.c/self.c*self.c1**((gam_sp-1.e0)/2.e0)
         self.c_absor= np.sqrt(3.0e0)*self.e_charge*self.e_charge*self.e_charge/16.e0/np.pi/self.e_mass*self.c1**(gam_sp/2.e0)*(gam_sp+2.e0)
-
-
-
-
-
-
 
 
 
@@ -335,8 +331,8 @@ class rmhd_data(object):
 
         c=2.9979e10
         self.bx= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
-        self.by= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
-        self.bz= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
+        self.by= self.by*np.sqrt(4.e0*np.pi*external_density*c*c)
+        self.bz= self.bz*np.sqrt(4.e0*np.pi*external_density*c*c)
         self.density= self.density*self.tracer
         self.eps=self.eps*self.tracer
 
@@ -349,4 +345,123 @@ def mirror(array):
     return np.append(array[::-1,::],array,0)
 
 
+
+
+
+
+
+
+
+
+class rmhd_data_y(object):
+
+    def __init__(self,importfile,parameters):
+        #Get class logger
+        self.logger = logging.getLogger('HADES.importer.rmhd_data')
+        self.logger.info('Creating an instance of rmhd_data')
+
+        self.logger.info("Reading RMHd data from file '"+str(importfile.name)+"'....")
+
+
+        self.mnx= parameters.x_grid_dim
+        self.mny = parameters.y_grid_dim
+        self.mnz = parameters.y_grid_dim
+        n=self.mnx*self.mnz
+
+        data = np.loadtxt('./data.dat')
+
+        data= data.transpose()
+
+
+
+        #Now, we start to read the values taking account of the types, and we transfer those into suitable variables
+
+        "rho, v^r, v^\\phi, v^z, p, B^r, B^\\phi, B^z"
+        self.density =( data[2] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.eps = ( (3.0* data[6])/data[2]  ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.tracer = ( data[10] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.velx = ( data[3] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.vely = ( data[4] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.velz =( data[5] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.bx = ( data[7] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.by =( data[8] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.bz = ( data[9] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.bxs = (  data[7] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.bys = (  data[8] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+        self.bzs = (  data[9] ).reshape((self.mnx,self.mnz),order="FORTRAN")
+
+        self.logger.ok("RMHD data read and organized correctly ")
+
+
+    #Test function to RMHD data
+    def rmhd_test(self):
+
+        self.logger.info("Starting tests to RMHD data ")
+
+        flag=False
+        if (self.density < 0).any() :
+            self.logger.fail_check("Negative values for density founded")
+            flag=True
+        else:
+            self.logger.info("All values of density are correct")
+
+        if (self.eps < 0).any() :
+            self.logger.fail_check("Negative values for energy founded")
+            flag=True
+        else:
+            self.logger.info("All values of energy are correct")
+
+        if (self.velx > 1).any() :
+            self.logger.fail_check("Found some values of velx > c")
+            flag=True
+        else:
+            self.logger.info("All values for velx are correct")
+
+        if (self.vely > 1).any() :
+            self.logger.fail_check("Found some values of vely > c")
+            flag=True
+        else:
+            self.logger.info("All values for vely are correct")
+
+        if (self.velz > 1).any() :
+            self.logger.fail_check("Found some values of velz > c")
+            flag=True
+        else:
+            self.logger.info("All values for velz are correct")
+
+
+        if flag :
+            self.logger.error("Some test on the RMHD data filed ")
+        else:
+            self.logger.ok("RMHD data tests passed correctly. ")
+
+        self.logger.info("End of tests to RMHD data.")
+
+
+    # Utility funtion to read one integer from a binary file when little endian
+
+    def readint(self,fileobj):
+        return (np.fromfile(file=fileobj, dtype=np.int32,count=1).byteswap())[0]
+
+    # Utility funtion to read one double p. float from a binary file when little endian
+
+    def readdp(self,fileobj):
+        return (np.fromfile(file=fileobj, dtype=np.float64,count=1).byteswap())[0]
+
+    # Utility funtion to read an array of floats from a binary file when little endian
+
+    def readarr(self,fileobj,n):
+        return np.fromfile(file=fileobj, dtype=np.float64,count=n).byteswap()
+
+    def correction(self,external_density):
+        self.logger.info("Requested correction of magnetic field, density and energy.")
+
+        c=2.9979e10
+        self.bx= self.bx*np.sqrt(4.e0*np.pi*external_density*c*c)
+        self.by= self.by*np.sqrt(4.e0*np.pi*external_density*c*c)
+        self.bz= self.bz*np.sqrt(4.e0*np.pi*external_density*c*c)
+        self.density= self.density*self.tracer
+        self.eps=self.eps*self.tracer
+
+        self.logger.info("Correctly corrected the values of magnetic field, density and energy.")
 

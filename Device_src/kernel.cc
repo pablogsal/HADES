@@ -3,7 +3,7 @@
 
 __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vely,float *velz,
                                float *bx,float *by,float *bz,
-							   int *jet_limits ,float *a, float *b, float *besselx,float *besself,float *besselg,int *error_test,float *c)
+							   int *jet_limits , float *besselx,float *besself1,float *besself2,float *besselg1,float *besselg2,int *error_test,double *sia_out, double *sib_out,double *suab_out,double *tau_out,double *rmea_out,double *botf_out)
 {
     
      
@@ -44,7 +44,17 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
      int y = threadIdx.y + blockIdx.y * blockDim.y;
      int offset = x + y * blockDim.x * gridDim.x ;
 
-     float flag=-0.001;
+//     double flag=0;
+
+     // Initialize the matrix values to get out
+
+	double sia =0.0;
+	double sib =0.0;
+	double suab=0.0;
+	double tau=0.0;
+	double rmea=0.0;
+	double botf=0.0;
+
          
      // If we are out of range, we do nothing. This is important if we
      // want more threads than needed.    
@@ -58,10 +68,7 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
           int y_cell=image_y_min+x;
           int z_cell=image_z_min+y;
 		  
-		  
-		  //Test stuff (to test if the matrix are being readed)
-//          float Aelement = velx[13];
-//          float Belement = b[offset];
+
     
 
           // Initialize x_min and x_max for this cell.
@@ -84,21 +91,20 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
 			
       	  float rho = 0.0 ;
       	  float zeta = 0.0 ;
-          float sum = 0;
 		
           // If we have enought cells to integrate:
 
           if( x_max > x_min){
 
 
-        	 float restd[ %(MAX_CELLS)s ];
-             float eldeng[ %(MAX_CELLS)s ];
-             float emini[ %(MAX_CELLS)s ];
-             float deltao[ %(MAX_CELLS)s ];
-             float mfield[ %(MAX_CELLS)s ];
-             float ang[ %(MAX_CELLS)s ];
-             float chih[ %(MAX_CELLS)s ];
-             float rmds[ %(MAX_CELLS)s ];
+        	 double restd[ %(MAX_CELLS)s ];
+        	 double eldeng[ %(MAX_CELLS)s ];
+        	 double emini[ %(MAX_CELLS)s ];
+        	 double deltao[ %(MAX_CELLS)s ];
+        	 double mfield[ %(MAX_CELLS)s ];
+        	 double ang[ %(MAX_CELLS)s ];
+        	 double chih[ %(MAX_CELLS)s ];
+        	 double rmds[ %(MAX_CELLS)s ];
 
 
         	  //Initialize the number of cells accumulator.
@@ -124,32 +130,24 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
 
            		 			int index_for_rmhd = get_data_index(zeta, rho, dim_y);
 
-           		 			//index_for_rmhd can contain outside values -> POSIBLE BUG.
-            			    energy(cell,&(restd[cell]),&(eldeng[cell]),&(emini[cell]),  density[ index_for_rmhd ] , eps[ index_for_rmhd ]);
+           		 			double res;
 
-            			    float res;
+           		 			energy(cell,&(restd[cell]),&(eldeng[cell]),&(emini[cell]),  density[ index_for_rmhd ] , eps[ index_for_rmhd ],&res);
+
+
+
 
             			    // Call lorentz factor function
-            			    // Is vy == vz in the code POSIBLE BUG ????
 
             			    lorenz_calculator( cell, x_cell, y_cell, z_cell,theta,  velx[ index_for_rmhd ],  velz[ index_for_rmhd ],  vely[ index_for_rmhd ]
-            			                      ,  bx[ index_for_rmhd ],  by[ index_for_rmhd ],  bz[ index_for_rmhd ],&res, &(deltao[cell]), &(mfield[cell])
+            			                      ,  bx[ index_for_rmhd ],  bz[ index_for_rmhd ],  by[ index_for_rmhd ],&res, &(deltao[cell]), &(mfield[cell])
             			                      ,  &(ang[cell]), &(chih[cell]) ,&(rmds[cell]), restd[cell] );
-
 
             			    cell++;
 
 
-            			    ////////Control stuff
-
-            				sum = sum + density[index_for_rmhd];
-
-
-
+            			   //Control stuff
 //            				flag=res;
-			
-
-
 
 			
            			 } //End of ?inside tracer value
@@ -157,21 +155,21 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
 
                 } // En of x_cell loop
 
-
-
-        		//Continue after x cell loop
-                //float num = over_flow();
-
-
+                //Continue after x cell loop
 
                 if( cell > 1){
 
                 // Must integrate transfer equations
-                	float res;
 
-                difsum( cell,  restd,  eldeng,  emini,  deltao,  mfield,  ang,  chih,  rmds,&res,besselx,besself,besselg,error_test);
+                double res=0;
 
-                flag=res;
+                 difsum( cell,  restd,  eldeng,  emini,  deltao,  mfield,  ang,  chih,  rmds,&res,besselx,besself1,besself2,besselg1,besselg2,error_test, &sia, &sib,&suab,&tau,&rmea,&botf);
+
+
+
+//				  Control stuff to debugging
+//                flag=sia+sib;
+
                 }
 
 
@@ -185,14 +183,19 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
        	 	rho=0;
        	 	zeta=0;
 
-       	 b[offset] = 1.111;
-       	c[offset] = 0;
         } //Continue outside x_max > x_min
 		
 
+          //Get the values into the output arrays
+
+          sia_out[offset] = sia;
+          sib_out[offset] = sib;
+          suab_out[offset] = suab;
+          tau_out[offset] = tau;
+          rmea_out[offset] = rmea;
+          botf_out[offset] = botf;
 
 
-          c[offset] = flag;
 
 
 
@@ -202,6 +205,6 @@ __global__ void MatrixMulKernel(float *density,float *eps,float *velx,float *vel
 
           // This printf is only for fun
    
-           printf("I am out of thread (%% i,%% i) \\n ",x,y);
+//           printf("I am out of thread (%% i,%% i) \\n ",x,y);
       }
 }

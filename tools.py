@@ -2,6 +2,7 @@ __author__ = 'pablogsal'
 
 import sys,time,random
 import logging
+import numpy as np
 
 typing_speed = 1200 #wpm
 
@@ -73,3 +74,54 @@ def bytes2human(n, format="%(value)i%(symbol)s"):
 
 def exit():
     sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+
+
+def construct_lines_from_angle(angle,background=np.array(0),step=6,scale=5):
+
+    # Get the angle array dimensions to go over it
+    (dim_y,dim_x)=angle.shape
+
+    #Initialize the list of lines
+
+    lines=[]
+
+    #Main loop over angle array
+    for y in range(0,dim_y,step):
+        for x in range(0,dim_x,step):
+
+         #If there is a limitator get it, else initialize the limitator to 1
+         # Here the limitator is a boolean with 0 where we do not want to get lines
+
+            if background.shape != ():
+
+                if background[y,x] == 0:
+                    boole_limitator=0
+                else:
+                    boole_limitator=1
+            else:
+                boole_limitator=1
+
+
+
+            # We must eliminate the border lines to avoid problems with scaling the plot
+
+            if x <1 or x>dim_x-2 or y<1 or y > dim_y-2 :
+                boole_limitator =0
+
+            #Get the line lenght
+            line_lenght=1*0.5*scale*boole_limitator
+
+            #Get the angle
+            theta=angle[y,x]
+
+            #Construct the segment
+            x1=x+line_lenght*np.sin(theta)
+            y1=y-line_lenght*np.cos(theta)
+            x2=x-line_lenght*np.sin(theta)
+            y2=y+line_lenght*np.cos(theta)
+            line=[(x2,y2),(x1,y1)]
+
+            # Add the segment to the liner accumulator
+            lines.append(line)
+
+    return lines

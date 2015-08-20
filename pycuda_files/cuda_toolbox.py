@@ -16,6 +16,25 @@ module_logger = logging.getLogger('HADES.cuda_toolbox')
 
 
 
+def delete_nan(array):
+    indices = np.where(np.isnan(array)) #returns an array of rows and column indices
+
+    lx,ly = array.shape
+
+    for row, col in zip(*indices):
+
+        if row == 0 or row == lx or col == 0 or col == ly:
+
+            array[row,col] = np.mean([ array[row-1,col-1] , array[row,col-1] ,array[row+1,col-1] ,array[row,col+1] ,array[row+1,col],
+                                   array[row-1,col],array[row+1,col+1],array[row-1,col+1] ] )
+
+        else:
+
+            array[row,col] = 0
+
+
+    return array
+
 
 
 
@@ -113,7 +132,7 @@ def get_device_attributes(device_number):
 
 def memory_occupance():
     '''Function to give the memory ocuppancy of the device'''
-    module_logger.info('Requested the calculation of free memory on device.')
+    module_logger.info('Requested the calculation of free memory on device')
     free,total= driver.mem_get_info()
     module_logger.info("Global memory occupancy:%f %% free"%(free*100/total))
     module_logger.info('Free memory correctly calculated.')

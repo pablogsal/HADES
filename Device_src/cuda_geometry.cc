@@ -17,7 +17,7 @@
 //}
 
 
-__device__ void x_limits(float *x_min, float *x_max,int dim_x, int dim_y, float theta,float y_cell,
+__device__ void x_limits(float *x_min, float *x_max,int dim_x_old, int dim_y_old, float theta,float y_cell,
 float z_cell)
 {
 
@@ -28,6 +28,12 @@ float z_cell)
     // x= rho
     // y= z
 float pi= 3.14159265358979323846264338328;
+int scalex = %(SCALEX)s;
+int scaley = %(SCALEY)s;
+// CHAGE THIS!!!
+
+int dim_x=dim_x_old*scalex;
+int dim_y=dim_y_old*scaley;
 
     // As when we revolve the RMHD rho-z plane around the z axis we
     // are constructing a cylinder, the limits in the x coordinate
@@ -171,14 +177,17 @@ __device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float
 //    float pi= 3.14159265358979323846264338328;
     // The x,y,z in lab frame (a rotation of x,y,z)
 
+	int scalex = %(SCALEX)s;
+	int scaley = %(SCALEY)s;
+
     float x_lab= cos(theta) * x - sin(theta) * y;
     float y_lab= cos(theta) * y + sin(theta) * x;
     float z_lab = z;
 
      // The rho and z coordinates
 
-    *rho=round(sqrt(x_lab * x_lab + z_lab * z_lab ));
-    *zeta= round(y_lab);
+    *rho=round(sqrt(x_lab * x_lab + z_lab * z_lab )/scalex);
+    *zeta= round(y_lab/scaley);
 
     //Beware of rho=-1 and rho > dim_x!!
 
@@ -191,7 +200,7 @@ __device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float
     }
 
 
-    if(*zeta<0){
+    if(*zeta<=0){
     	*zeta=0;
     }
     if(*zeta>=dim_y)
@@ -204,15 +213,18 @@ __device__ void obs_to_rmhd(float *rho,float *zeta,float x,float y,float z,float
 
 
 
-__device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_cell_out,float theta, float vx, float vy, float vz, float bx, float by, float bz,float *res
-								 ,float *deltao, float *mfield , float *ang, float *chih,float *rmds, float restd){
+__device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_cell_out,float theta, float vx, float vy, float vz, float bx, float by, float bz,double *res
+								 ,double *deltao, double *mfield , double *ang, double *chih,double *rmds, float restd){
+
+
+
 
 
 	// Problems with x_cell, y_cell and z_cell =0;
 
-	float x_cell= x_cell_out;
-	float y_cell= y_cell_out;
-	float z_cell= z_cell_out;
+	double x_cell= x_cell_out;
+	double y_cell= y_cell_out;
+	double z_cell= z_cell_out;
 
 	if(x_cell == 0){
 		x_cell = 1;
@@ -220,20 +232,27 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 
 
 
+	//Construct reusable numberic variables
+
+	double cos_theta = cos(theta);
+	double sin_theta = sin(theta);
+
+
+
 
 	// Get variable values
 
 
-	float rshift= %(REDSHIFT)s;
-	float pi= 3.14159265358979323846264338328;
+	double rshift= %(REDSHIFT)s;
+	double pi= 3.14159265358979323846264338328;
 
 
 	//  Modulus of the velocity
 
-	float beta = sqrt( vx*vx+vy*vy+vz*vz  );
+	double beta = sqrt( vx*vx+vy*vy+vz*vz  );
 
 	//  Lorentz factor
-	float w =1.0/sqrt(1.0-beta*beta);
+	double w =1.0/sqrt(1.0-beta*beta);
 
 //	  Transformation of the cell's coordinates between the observer's and
 //	  the source system where:
@@ -242,8 +261,8 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	  (I don't need now CSOUY)
 
 
-	   float   csoux=cos(theta)*x_cell-sin(theta)*y_cell;
-	   float   csouz=z_cell;
+	   double   csoux=cos_theta*x_cell-sin_theta*y_cell;
+	   double   csouz=z_cell;
 
 
 //	     Cosinus and sinus of the inclination angle of the grid frame plane
@@ -251,17 +270,17 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	     respect to the plane z=0 in the source system (positive towards the
 //	     source's system z-axis)
 
-	   float      cphi=csoux/sqrt(csoux*csoux+csouz*csouz);
-	   float      sphi=csouz/sqrt(csoux*csoux+csouz*csouz);
+	   double      cphi=csoux/sqrt(csoux*csoux+csouz*csouz);
+	   double      sphi=csouz/sqrt(csoux*csoux+csouz*csouz);
 
 
 //	     Components of the velocity vector in the observer's frame, transforming
 //	     from grid to source to observer
 
 
-	   float    vobs_x= vx*cphi*cos(theta)+vy*sin(theta)-vz*sphi*cos(theta);
-	   float    vobs_y=-vx*cphi*sin(theta)+vy*cos(theta)+vz*sphi*sin(theta);
-	   float    vobs_z= vx*sphi+vz*cphi;
+	   double    vobs_x= vx*cphi*cos_theta+vy*sin_theta-vz*sphi*cos_theta;
+	   double    vobs_y=-vx*cphi*sin_theta+vy*cos_theta+vz*sphi*sin_theta;
+	   double    vobs_z= vx*sphi+vz*cphi;
 
 
 //	     Doppler boosting factor. Cosinus angle between velocity and line of sight
@@ -275,48 +294,56 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //		  Orientation of the cell's velocity vector in the observer's frame
 	   	   // Posible bug in azicell!!!!!
 
-		   float   azicell=atan2(vobs_y,vobs_x);
-		   float   elecell=atan2(vobs_z,sqrt(vobs_x*vobs_x+vobs_y*vobs_y));
+		   double   azicell=atan2(vobs_y,vobs_x);
+		   double   elecell=atan2(float(vobs_z),sqrt(float(vobs_x*vobs_x+vobs_y*vobs_y)));
+
+
+		   //Get reusable values
+
+		   double cos_azicell = cos(azicell);
+		   double sin_azicell = sin(azicell);
+		   double cos_elecell = cos(elecell);
+		   double sin_elecell = sin(elecell);
 
 
 //		     Cross product (v x B)
-		   float v_por_b_x=vy*bz-vz*by;
-		   float v_por_b_y=vz*bx-vx*bz;
-		   float v_por_b_z=vx*by-vy*bx;
+		   double v_por_b_x=vy*bz-vz*by;
+		   double v_por_b_y=vz*bx-vx*bz;
+		   double v_por_b_z=vx*by-vy*bx;
 
 //		     Cros product [v x (v x B)]
-		   float  v_por_vb_x=vy*v_por_b_z-vz*v_por_b_y;
-		   float  v_por_vb_y=vz*v_por_b_x-vx*v_por_b_z;
-		   float  v_por_vb_z=vx*v_por_b_y-vy*v_por_b_x;
+		   double  v_por_vb_x=vy*v_por_b_z-vz*v_por_b_y;
+		   double  v_por_vb_y=vz*v_por_b_x-vx*v_por_b_z;
+		   double  v_por_vb_z=vx*v_por_b_y-vy*v_por_b_x;
 
 //		     Escalar product (v.B)
-		   float  v_esc_b=vx*bx+vy*by+vz*bz;
+		   double  v_esc_b=vx*bx+vy*by+vz*bz;
 
 //		     Magnetic field in the fluid comovil frame, but with the orientation of
 //		     the grid frame
 
-		   float bf_x=w*(bx+v_por_vb_x)-w*w/(w+1.0)*v_esc_b*vx;
-	       float bf_y=w*(by+v_por_vb_y)-w*w/(w+1.0)*v_esc_b*vy;
-	       float bf_z=w*(bz+v_por_vb_z)-w*w/(w+1.0)*v_esc_b*vz;
+		   double bf_x=w*(bx+v_por_vb_x)-w*w/(w+1.0)*v_esc_b*vx;
+	       double bf_y=w*(by+v_por_vb_y)-w*w/(w+1.0)*v_esc_b*vy;
+	       double bf_z=w*(bz+v_por_vb_z)-w*w/(w+1.0)*v_esc_b*vz;
 
 
 //	         Total magnetic field strength in a frame comovil with the fluid
 
-	        *mfield =sqrt(bf_x*bf_x+bf_y*bf_y+bf_z*bf_z);
+	        *mfield =sqrt(float(bf_x*bf_x+bf_y*bf_y+bf_z*bf_z));
 
 //	          Components of the magnetic field comovil with the fluid, but rotated to
 //	          the observer's frame (rotating from from grid to source to observer)
 
-	       float bfo_x = bf_x*cphi*cos(theta)+bf_y*sin(theta)-bf_z*sphi*cos(theta);
-	       float bfo_y = -bf_x*cphi*sin(theta)+bf_y*cos(theta)+bf_z*sphi*sin(theta);
-	       float bfo_z = bf_x*sphi+bf_z*cphi;
+	       double bfo_x = bf_x*cphi*cos_theta+bf_y*sin_theta-bf_z*sphi*cos_theta;
+	       double bfo_y = -bf_x*cphi*sin_theta+bf_y*cos_theta+bf_z*sphi*sin_theta;
+	       double bfo_z = bf_x*sphi+bf_z*cphi;
 
 //	          Now we introduce another rotation to the fluid frame (as seen in the
 //	         observer's frame using azicell and elecell)
 
-	       float bfl_x = bfo_x*cos(azicell)*cos(elecell)+bfo_y*sin(azicell)*cos(elecell)+bfo_z*sin(elecell);
-	       float bfl_y = -bfo_x*sin(azicell)+bfo_y*cos(azicell);
-	       float bfl_z = -bfo_x*cos(azicell)*sin(elecell)-bfo_y*sin(azicell)*sin(elecell)+bfo_z*cos(elecell);
+	       double bfl_x = bfo_x*cos_azicell*cos_elecell+bfo_y*sin_azicell*cos_elecell+bfo_z*sin_elecell;
+	       double bfl_y = -bfo_x*sin_azicell+bfo_y*cos_azicell;
+	       double bfl_z = -bfo_x*cos_azicell*sin_elecell-bfo_y*sin_azicell*sin_elecell+bfo_z*cos_elecell;
 
 
 //	         ---> Light aberration
@@ -324,33 +351,46 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	        fluid's frame using the light aberration formulae.
 //	         [We should also consider corrections by Hubble velocity (using redshift).]
 
-	       float  raiz = sqrt(w*w*pow(beta - cos(azicell)*cos(elecell), float(2.0) ) + cos(elecell)*cos(elecell)*sin(azicell)*sin(azicell));
+	       double  raiz = sqrt(float(w*w*pow(beta - cos_azicell*cos_elecell, double(2.0) ) + cos_elecell*cos_elecell*sin_azicell*sin_azicell ));
 
 
 //	         New value of ELECELL corrected by light aberration
 
-	       float selecellp = sin(elecell)/(w*(1.0-beta*cos(elecell)*cos(azicell)));
-	       float celecellp = raiz/(w*(1.0-beta*cos(elecell)*cos(azicell)));
-	       float elecellp =  atan2(selecellp,celecellp);
+	       double selecellp = sin_elecell/(w*(1.0-beta*cos_elecell*cos_azicell));
+	       double celecellp = raiz/(w*(1.0-beta*cos_elecell*cos_azicell));
+	       double elecellp =  atan2(float(selecellp),float(celecellp));
+
+		   double sin_elecellp = sin(elecellp);
+		   double cos_elecellp = cos(elecellp);
 
 
 //	         New value of AZICELL corrected by light aberration
 
-	         float sazicellp = cos(elecell)*sin(azicell)/raiz;
-	       	 float cazicellp = w*(cos(elecell)*cos(azicell)-beta)/raiz;
-	       	 float azicellp = atan2(sazicellp,cazicellp);
+	         double sazicellp = cos_elecell*sin_azicell/raiz;
+	       	 double cazicellp = w*(cos_elecell*cos_azicell-beta)/raiz;
+	       	 double azicellp = atan2(float(sazicellp),float(cazicellp));
+
+			   //Get reusable values
+
+
+			   double sin_azicellp = sin(azicellp);
+			   double cos_azicellp = cos(azicellp);
+
 
 
 //	       	  Components of the line of sight in the fluid's frame corrected by
 //	       	  light aberration
-	       	float lfab_x = cos(azicellp)*cos(elecellp);
-	       	float lfab_y = -sin(azicellp);
-	       	float lfab_z = -cos(azicellp)*sin(elecellp);
+	       	double lfab_x = cos_azicellp*cos_elecellp;
+	       	double lfab_y = -sin_azicellp;
+	       	double lfab_z = -cos_azicellp*sin_elecellp;
 
 //	       	  Angle between the line of sight and the magnetic field in the fluid's frame
 //	       	  corrected by light aberration
+	       	double arg =double(   (bfl_x*lfab_x+bfl_y*lfab_y+bfl_z*lfab_z)/(*mfield)  );
 
-	       	*ang=acos(float(   (bfl_x*lfab_x+bfl_y*lfab_y+bfl_z*lfab_z)/(*mfield)  ));
+	       	*ang=acos(arg);
+
+
 
 
 //	       	 Components of the total magnetic field in a frame comoving with the fluid
@@ -358,9 +398,9 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	       	  aberration. See e.g. Blandford & Konigl 1979 or Lyutikov et al. 2003, for
 //	       	  the rotation of the polarization.
 
-	       	  float bfl_obla_x = cos(elecellp)*cos(azicellp)*bfl_x-sin(azicellp)*bfl_y-sin(elecellp)*cos(azicellp)*bfl_z;
-	       	  float	bfl_obla_y = cos(elecellp)*sin(azicellp)*bfl_x+cos(azicellp)*bfl_y-sin(elecellp)*sin(azicellp)*bfl_z;
-	       	  float bfl_obla_z = sin(elecellp)*bfl_x+cos(elecellp)*bfl_z;
+	       	  double bfl_obla_x = cos_elecellp*cos_azicellp*bfl_x-sin_azicellp*bfl_y-sin_elecellp*cos_azicellp*bfl_z;
+	       	  double bfl_obla_y = cos_elecellp*sin_azicellp*bfl_x+cos_azicellp*bfl_y-sin_elecellp*sin_azicellp*bfl_z;
+	       	  double bfl_obla_z = sin_elecellp*bfl_x+cos_elecellp*bfl_z;
 
 
 //	          Angle between the projection of the total magnetic field in the plane
@@ -370,7 +410,7 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	       	  This is defined to follow the usual VLBI notation, with zero to the
 //	       	  north, and counter-clockwise. This determines the polarization.
 
-	       	*chih= atan2(bfl_obla_z,bfl_obla_y)-(90.0*pi/180.0);
+	       	*chih= atan2(float(bfl_obla_z),float(bfl_obla_y))-(90.0*pi/180.0);
 
 //	       	  Rotation measure per cell's length per observing wavelength**2 in c.g.s.
 //	       	  This is a quantity to be used in the integration of the transfer in the
@@ -379,13 +419,16 @@ __device__ void lorenz_calculator(int cell,int x_cell_out,int y_cell_out,int z_c
 //	       	    observer's frame (it's initially defined in the fluid frame, as given
 //	       	    by the RMHD code) by dividing by W.
 
-	       	      *rmds=2.63E-17*(restd/w)*bfl_obla_x;
+	       	      *rmds=2.63e-17*(restd/w)*bfl_obla_x;
 
 // This is a tester!!!!
-	*res=vz;
+
+//	if(*ang != *ang){
+//	*res = *ang  ;
+//	}
 
 
-//	*res =*rmds;
+
 }
 
 

@@ -31,8 +31,8 @@ class image(object):
         # x= rho
         # y= z
 
-        dim_x=input_par.x_grid_dim
-        dim_y=input_par.y_grid_dim
+        dim_x=input_par.x_grid_dim*input_par.scalex
+        dim_y=input_par.y_grid_dim*input_par.scaley
         view_angle=input_par.viewing_angle
         beam_radius=input_par.beam_radius
         beam_cells=input_par.beam_radius_cells
@@ -150,7 +150,6 @@ def tracer_limits(tracer,limit):
         # These values come from the criterion of where the tracer is greater than some value.
 
         logger.info('Limits along the z axis correctly calculated')
-
         return np.array([np.where(x>limit)[0][-1] for x in tracer.transpose()])
 
 
