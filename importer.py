@@ -368,7 +368,7 @@ class rmhd_data_y(object):
         self.mnz = parameters.y_grid_dim
         n=self.mnx*self.mnz
 
-        data = np.loadtxt('./data.dat')
+        data = np.loadtxt(importfile.name)
 
         data= data.transpose()
 

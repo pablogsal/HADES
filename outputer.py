@@ -136,7 +136,7 @@ class output_data(object):
         rescaled_flux=np.sqrt( np.power( self.stokes_Q,2) + np.power( self.stokes_U,2))
 
 
-        colormap=sns.cubehelix_palette(start=2.3, light=2, as_cmap=True,
+        colormap=sns.cubehelix_palette(start=2.3, light=1,gamma=0.8, as_cmap=True,
                                                                            reverse=True)
         self.logger.info('Constructing the background of the polarization map')
         # CONSTRUCTION OF THE BACKGROUND
@@ -195,7 +195,7 @@ class output_data(object):
         rescaled_flux=self.total_flux*1e7
 
 
-        colormap=sns.cubehelix_palette(start=2.3, light=2, as_cmap=True,reverse=True)
+        colormap=sns.cubehelix_palette(start=2.3, light=1,gamma=0.8, as_cmap=True,reverse=True)
         self.logger.info('Constructing the background.')
         # CONSTRUCTION OF THE BACKGROUND
 
