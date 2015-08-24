@@ -150,7 +150,7 @@ def main():
 
     # Open the output_file
     logger.info('Opening the output file ' + par.result_file + '.')
-    
+
     # Pass the magnetic field to cgs and correct the density and eps with the
     # tracer values
     data.correction(par.external_density)
