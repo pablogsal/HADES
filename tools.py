@@ -1,14 +1,16 @@
 __author__ = 'pablogsal'
 
-import sys,time,random
+import sys
 import logging
+
 import numpy as np
 
-typing_speed = 1200 #wpm
+typing_speed = 1200  # wpm
+
 
 def stype(t):
 
-    if not qflag :
+    if not qflag:
         print(t)
     else:
         pass
@@ -22,8 +24,7 @@ def stype(t):
 #     sys.stdout.write('\n')
 
 
-
-#Class for output colors
+# Class for output colors
 
 class bcolors:
     HEADER = '\033[95m'
@@ -35,23 +36,28 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-#Custom logger classes for error and OK
+# Custom logger classes for error and OK
 
 logging.addLevelName(60, "ERROR")
+
+
 def log_error(self, message, *args, **kws):
     if self.isEnabledFor(60):
-        self._log(60, bcolors.FAIL+message+bcolors.ENDC, args, **kws)
+        self._log(60, bcolors.FAIL + message + bcolors.ENDC, args, **kws)
 
 logging.addLevelName(25, "CHECK")
+
+
 def log_OK(self, message, *args, **kws):
     if self.isEnabledFor(25):
-        self._log(25, bcolors.OKGREEN+message+bcolors.ENDC, args, **kws)
+        self._log(25, bcolors.OKGREEN + message + bcolors.ENDC, args, **kws)
 
 logging.addLevelName(35, "WARNING")
+
+
 def log_WARNING(self, message, *args, **kws):
     if self.isEnabledFor(35):
-        self._log(35, bcolors.WARNING+message+bcolors.ENDC, args, **kws)
-
+        self._log(35, bcolors.WARNING + message + bcolors.ENDC, args, **kws)
 
 
 def bytes2human(n, format="%(value)i%(symbol)s"):
@@ -61,10 +67,19 @@ def bytes2human(n, format="%(value)i%(symbol)s"):
     >>> bytes2human(100001221)
     '95M'
     """
-    symbols = (' Bytes', ' KBytes', ' MBytes', ' GBytes', ' TBytes', ' PBytes', ' EBytes', ' ZBytes', ' YBytes')
+    symbols = (
+        ' Bytes',
+        ' KBytes',
+        ' MBytes',
+        ' GBytes',
+        ' TBytes',
+        ' PBytes',
+        ' EBytes',
+        ' ZBytes',
+        ' YBytes')
     prefix = {}
     for i, s in enumerate(symbols[1:]):
-        prefix[s] = 1 << (i+1)*10
+        prefix[s] = 1 << (i + 1) * 10
     for symbol in reversed(symbols[1:]):
         if n >= prefix[symbol]:
             value = float(n) / prefix[symbol]
@@ -73,53 +88,55 @@ def bytes2human(n, format="%(value)i%(symbol)s"):
 
 
 def exit():
-    sys.exit("We have found some errors. \nTry looking at the previous lines to find some clue. :("+'\n')
+    sys.exit(
+        "We have found some errors. \nTry looking at the previous lines to find some clue. :(" +
+        '\n')
 
 
-def construct_lines_from_angle(angle,background=np.array(0),step=6,scale=5):
+def construct_lines_from_angle(angle, background=np.array(0), step=6, scale=5):
 
     # Get the angle array dimensions to go over it
-    (dim_y,dim_x)=angle.shape
+    (dim_y, dim_x) = angle.shape
 
-    #Initialize the list of lines
+    # Initialize the list of lines
 
-    lines=[]
+    lines = []
 
-    #Main loop over angle array
-    for y in range(0,dim_y,step):
-        for x in range(0,dim_x,step):
+    # Main loop over angle array
+    for y in range(0, dim_y, step):
+        for x in range(0, dim_x, step):
 
-         #If there is a limitator get it, else initialize the limitator to 1
-         # Here the limitator is a boolean with 0 where we do not want to get lines
+         # If there is a limitator get it, else initialize the limitator to 1
+         # Here the limitator is a boolean with 0 where we do not want to get
+         # lines
 
             if background.shape != ():
 
-                if background[y,x] == 0:
-                    boole_limitator=0
+                if background[y, x] == 0:
+                    boole_limitator = 0
                 else:
-                    boole_limitator=1
+                    boole_limitator = 1
             else:
-                boole_limitator=1
+                boole_limitator = 1
 
+            # We must eliminate the border lines to avoid problems with scaling
+            # the plot
 
+            if x < 1 or x > dim_x - 2 or y < 1 or y > dim_y - 2:
+                boole_limitator = 0
 
-            # We must eliminate the border lines to avoid problems with scaling the plot
+            # Get the line lenght
+            line_lenght = 1 * 0.5 * scale * boole_limitator
 
-            if x <1 or x>dim_x-2 or y<1 or y > dim_y-2 :
-                boole_limitator =0
+            # Get the angle
+            theta = angle[y, x]
 
-            #Get the line lenght
-            line_lenght=1*0.5*scale*boole_limitator
-
-            #Get the angle
-            theta=angle[y,x]
-
-            #Construct the segment
-            x1=x+line_lenght*np.sin(theta)
-            y1=y-line_lenght*np.cos(theta)
-            x2=x-line_lenght*np.sin(theta)
-            y2=y+line_lenght*np.cos(theta)
-            line=[(x2,y2),(x1,y1)]
+            # Construct the segment
+            x1 = x + line_lenght * np.sin(theta)
+            y1 = y - line_lenght * np.cos(theta)
+            x2 = x - line_lenght * np.sin(theta)
+            y2 = y + line_lenght * np.cos(theta)
+            line = [(x2, y2), (x1, y1)]
 
             # Add the segment to the liner accumulator
             lines.append(line)

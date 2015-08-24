@@ -1,15 +1,16 @@
 __author__ = 'pablogsal'
 
-import logging
-from tools import *
-import h5py
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 import warnings
+import h5py
+import matplotlib.pyplot as plt
 import seaborn.apionly as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from matplotlib import collections as plt_collections
+
+from tools import *
+
 
 #Create logger for module
 module_logger = logging.getLogger('HADES.outputer')

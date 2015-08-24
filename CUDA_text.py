@@ -32,7 +32,7 @@ f=open("JMC2RAU", "rb")
 data=importer.rmhd_data(f)
 
 # Instanciate the class parameters with the input file
-par=importer.imput_parameters("")
+par=importer.input_parameters("")
 
 #Open the output_file
 
