@@ -3,6 +3,9 @@ __author__ = 'pablogsal'
 import os
 import warnings
 import h5py
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn.apionly as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
