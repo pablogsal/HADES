@@ -61,7 +61,6 @@ def generate_parameter_dict(kernel_code_template,cuda_grid,input_par,obs_map,con
         'C1': constants.c1,
         'SCALEX': input_par.scalex,
         'SCALEY': input_par.scaley
-
         }
 
     module_logger.info('Parameters correctly substituted in the source code.')

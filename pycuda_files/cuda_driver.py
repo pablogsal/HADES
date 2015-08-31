@@ -243,6 +243,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
         block = (cuda_grid.tile_y, cuda_grid.tile_x, 1),
         )
 
+
     end.record() # end timing
     # calculate the run length
     end.synchronize()

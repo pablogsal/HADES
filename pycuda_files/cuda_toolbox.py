@@ -145,8 +145,8 @@ def memory_occupance():
 
 
 def cuda_mem_check(device_dictionary,cache_size,arrays):
-    '''Function to check if there will be enought memory in the GPU
-       to perform the computation'''
+    """Function to check if there will be enought memory in the GPU
+       to perform the computation"""
 
     module_logger.info('Checking if the system has enought memory on device.')
 

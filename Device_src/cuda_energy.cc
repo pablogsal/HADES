@@ -221,7 +221,11 @@ __device__ void difsum(int cell, double *restd, double *eldeng, double *emini, d
 	    double  dscl=ds/(1.0+rshift);
 
 //     Initializating values to zero
-
+		
+		
+    	 double sia_new =0.0;
+    	 double sib_new =0.0;
+     	 double suab_new=0.0;		
 	     double sia_temp =0.0;
 	     double sib_temp =0.0;
 	     double suab_temp=0.0;
@@ -280,6 +284,7 @@ __device__ void difsum(int cell, double *restd, double *eldeng, double *emini, d
 	    	 dxfds=rmds[i]*lambda*lambda/dscl;
 
 
+			 dxfds=0;
 
 
 //	      	 Set angles
@@ -303,9 +308,14 @@ __device__ void difsum(int cell, double *restd, double *eldeng, double *emini, d
 
 //	    	 for ( int iter = 0; iter <  1000; iter++ ) {
 	    	  dsint=dscl/(int(dscl*kap0)*10.0+1.0);
-	    	  sia_temp=sia_temp+dsint*(sia_temp*(-kap1*schi4-kap2*cchi4-0.5E0*kap0*s2chi2)+suab_temp*(0.25E0*(kap1-kap2)*s2chi+dxfds)+(em1*schi2+em2*cchi2));
-	    	  sib_temp=sib_temp+dsint*(sib_temp*(-kap1*cchi4-kap2*schi4-0.5E0*kap0*s2chi2)+suab_temp*(0.25E0*(kap1-kap2)*s2chi-dxfds)+(em1*cchi2+em2*schi2));
-	    	  suab_temp=suab_temp+dsint*(sia_temp*(0.5E0*(kap1-kap2)*s2chi-2.E0*dxfds)+sib_temp*(0.5E0*(kap1-kap2)*s2chi+2.E0*dxfds)-kap0*suab_temp-(em1-em2)*s2chi);
+	    	  sia_new =sia_temp+dsint*(sia_temp*(-kap1*schi4-kap2*cchi4-0.5E0*kap0*s2chi2)+suab_temp*(0.25E0*(kap1-kap2)*s2chi+dxfds)+(em1*schi2+em2*cchi2));
+	    	  sib_new =sib_temp+dsint*(sib_temp*(-kap1*cchi4-kap2*schi4-0.5E0*kap0*s2chi2)+suab_temp*(0.25E0*(kap1-kap2)*s2chi-dxfds)+(em1*cchi2+em2*schi2));
+	    	  suab_new=suab_temp+dsint*(sia_temp*(0.5E0*(kap1-kap2)*s2chi-2.E0*dxfds)+sib_temp*(0.5E0*(kap1-kap2)*s2chi+2.E0*dxfds)-kap0*suab_temp-(em1-em2)*s2chi);
+			  
+			  
+			  sia_temp=sia_new;
+			  sib_temp=sib_new;
+			  suab_temp=suab_new;
 
 //	    	 }
 
