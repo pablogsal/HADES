@@ -1,0 +1,43 @@
+[STANDARD_KEYS]
+Hubble: 080.0
+Rate_ene: 0.10e+09
+Gam_sp: 2.4
+Beam_radius: 00.02
+Beam_radius_cells: 128
+Tracer_limit: 0.9
+Redshift: 0.001
+Viewing_angle: 30.0
+RMHD_data_file: ./test1.mac
+x_var_dim: 160
+y_var_dim: 600
+x_grid_dim: 160
+y_grid_dim: 600
+scalex=1
+scaley=1
+Non_termal_fraction: 0.0e+00
+Non_termal_density: 0.1e+07
+External_density= 1.00e-26
+Observation_freq= 22.00
+Result_file=/home/pablogal/Code/HADES-master/results/test2.hfd5
+
+[YOSUKE_KEYS]
+Hubble: 080.0
+Rate_ene: 0.10e+09
+Gam_sp: 2.4
+Beam_radius: 00.02
+Beam_radius_cells: 128
+Tracer_limit: 0.9
+Redshift: 0.001
+Viewing_angle: 90.0
+RMHD_data_file: ./test1.mac
+x_var_dim: 128
+y_var_dim: 600
+x_grid_dim: 128
+y_grid_dim: 600
+scalex=1
+scaley=1
+Non_termal_fraction: 0.0e+00
+Non_termal_density: 0.1e+07
+External_density= 1.00e-26
+Observation_freq= 22.00
+Result_file=/home/pablogal/Code/HADES-master/results/test2.hfd5
