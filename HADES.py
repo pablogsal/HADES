@@ -11,7 +11,7 @@ from pycuda_files import cuda_driver
 from tools import *
 import logging
 import argparse
-import __builtin__
+import builtins
 import os
 
 
@@ -64,7 +64,7 @@ def main():
 
     # Bad idea of making global the quiet flag:
 
-    __builtin__.qflag = args.quiet_flag
+    builtins.qflag = args.quiet_flag
 
     ######## END OF PARSER CREATION #########
 
@@ -203,6 +203,8 @@ def main():
         output_data.make_polarization_map()
         output_data.make_polarization_background()
 
+
+    f.close()
     logger.ok('Program terminated successfully.')
 
 

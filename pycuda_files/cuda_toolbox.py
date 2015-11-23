@@ -71,11 +71,11 @@ class cuda_grid(object):
         divisors_y=np.array(list(self.divisorGenerator(self.grid_y)))
 
 
-        self.tile_x = divisors_x[divisors_x<32][-1]
-        self.tile_y = divisors_y[divisors_y<32][-1]
+        self.tile_x = int(divisors_x[divisors_x<32][-1])
+        self.tile_y = int(divisors_y[divisors_y<32][-1])
 
-        self.block_x = 1  if  self.grid_x //  self.tile_x ==0 else self.grid_x // self.tile_x
-        self.block_y = 1  if  self.grid_y //  self.tile_y ==0 else self.grid_y // self.tile_y
+        self.block_x = int(1  if  self.grid_x //  self.tile_x ==0 else self.grid_x // self.tile_x)
+        self.block_y = int(1  if  self.grid_y //  self.tile_y ==0 else self.grid_y // self.tile_y)
 
         self.logger.info('Maximal configuration correctly adjusted.')
 
@@ -83,7 +83,7 @@ class cuda_grid(object):
         '''This function calculates the divisors of the number n'''
         self.logger.info('Requested the calculation of divisors of grid size '+str(n)+'.')
         large_divisors = []
-        for i in xrange(1, int(math.sqrt(n) + 1)):
+        for i in range(1, int(math.sqrt(n) + 1)):
             if n % i is 0:
                 yield i
                 if i is not n / i:
@@ -125,7 +125,7 @@ def get_device_attributes(device_number):
     device=driver.Device(device_number)
     attrs=device.get_attributes()
     dict={}
-    for (key,value) in attrs.iteritems():
+    for (key,value) in attrs.items():
                 dict.update({str(key):value})
     return dict
 

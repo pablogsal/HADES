@@ -6,7 +6,7 @@ import os
 import pycuda
 from pycuda import driver, compiler, gpuarray, tools
 from tools import *
-import cuda_toolbox, cuda_dict
+from . import cuda_toolbox, cuda_dict
 import logging
 
 
@@ -228,7 +228,6 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
     end = driver.Event()
     module_logger.info('Starting CUDA Kernel.')
 
-
     start.record() # start timing
     # call the kernel on the card
     matrixmul(
@@ -240,8 +239,7 @@ def kernel_driver(data,input_par,obs_map,jet_limits,constants,bessel):
         # Grid definition -> number of blocks x number of blocks.
         grid = (cuda_grid.block_y,cuda_grid.block_x),
         # block definition -> number of threads x number of threads
-        block = (cuda_grid.tile_y, cuda_grid.tile_x, 1),
-        )
+        block = (cuda_grid.tile_y, cuda_grid.tile_x, 1))
 
 
     end.record() # end timing

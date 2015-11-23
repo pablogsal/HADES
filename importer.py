@@ -1,8 +1,7 @@
 __author__ = 'pablogsal'
 
-import ConfigParser
+import configparser
 import os
-
 import tabulate
 
 from tools import *
@@ -69,7 +68,7 @@ class input_parameters(object):
         # We have to read the information from the INI file to configure the
         # parameters.
 
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
 
         # Read from the supported filename, if the name is empty string then
         # read from the ACTUAL directory of the file to aboid path-related

@@ -110,7 +110,7 @@ class output_data(object):
         Processed_data_group.create_dataset("Polarization angle", data=self.pol_angle)
 
 
-        for key,entry in parameters.__dict__.iteritems():
+        for key,entry in parameters.__dict__.items():
 
             if not isinstance(entry,logging.Logger):
                 Processed_data_group.attrs[key] = entry
