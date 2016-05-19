@@ -6,7 +6,7 @@ HADES is a massively-parallel synchrotron emission raytracer for relativistic je
 
 # What is HADES ( using non-technical jargon )
 
-HADES is a software to simulate the synchrotron emission that emmanates from relativistic jets that work really fast. This last claim is possible thanks to the use of NVIDIA's GPU technology: CUDA. This LLVM-based framework allows the use of GPUs to make the hard calculations that are needed for the synchrotron simulations. GPUs are **really** fast when performing parallel taks (10-100 times more faster faster than CPUs) which makes this approach performs specially good when
+HADES is a software to simulate the synchrotron emission that emmanates from relativistic jets that works really fast. This last claim is possible thanks to the use of NVIDIA's GPU technology: CUDA. This LLVM-based framework allows the use of GPUs to make the hard calculations that are needed for the synchrotron simulations. GPUs are **really** fast when performing parallel taks (10-100 times more faster faster than CPUs) which makes this approach performs specially good when
 constructing raytracers as this one.
 
 # How HADES works?
